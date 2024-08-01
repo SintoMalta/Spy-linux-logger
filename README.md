@@ -21,10 +21,11 @@ Welcome to Spy Linux Logger, a stylish and effective tool designed for monitorin
 
 ### Installation
 
-1. **Clone the repository**:
-   ```sh
-   git clone https://github.com/SintoMalta/Spy-linux-logger.git
-   cd Spy-linux-logger
+1. Clone the repository:
+   
+   ```git clone https://github.com/SintoMalta/Spy-linux-logger.git```
+   ```cd Spy-linux-logger```
+   
 Run the script:
 sh
 Copy code
@@ -34,31 +35,6 @@ Interactive Users: Users logged in through the terminal (identified using the wh
 Network Connections: Users with open network connections (identified using the ss -tpn command).
 SSH Sessions: Users connected via SSH (identified using ss -tnp | grep sshd).
 Screen/Tmux Sessions: Users with active screen or tmux sessions (identified using ps -eo user,pid,comm | grep -E 'screen|tmux').
-Getting Started with GitHub
-Create a GitHub Account and Post Your First Script
-Create a GitHub Account:
-
-Visit GitHub and sign up.
-Follow the prompts to complete the account creation.
-Install Git:
-
-Download and install Git from git-scm.com.
-Configure Git:
-
-sh
-Copy code
-git config --global user.name "Your Name"
-git config --global user.email "your_email@example.com"
-Create a Repository on GitHub:
-
-Log in to GitHub and create a new repository.
-Clone the repository to your local machine.
-Add Your Script to the Repository:
-
-Add your script file to the repository directory.
-Commit and push your changes to GitHub.
-Contributing
-We welcome contributions to enhance the functionality and appearance of this tool. If you have suggestions, bug fixes, or improvements, please submit a pull request.
 
 License
 This project is licensed under the MIT License. See the LICENSE file for details.
