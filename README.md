@@ -24,6 +24,7 @@ Welcome to Spy Linux Logger, a stylish and effective tool designed for monitorin
 1. Clone the repository:
    
    ```git clone https://github.com/SintoMalta/Spy-linux-logger.git```
+   
    ```cd Spy-linux-logger```
    
 Run the script:
