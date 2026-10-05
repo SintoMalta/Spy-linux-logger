@@ -15,7 +15,11 @@
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:prod-programme": "tsx scripts/seed-production-programme.ts",
     "db:push": "prisma db push",
+    "backup": "bash scripts/backup.sh",
+    "backup:restore-demo": "bash scripts/backup-restore-demo.sh",
+    "bootstrap:admin": "tsx scripts/bootstrap-admin.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

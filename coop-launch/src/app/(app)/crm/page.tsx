@@ -4,6 +4,7 @@ import { canManageProgramme } from "@/server/auth/rbac";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import { SimpleForm } from "@/components/simple-form";
+import { CrmEditForm } from "@/components/crm-edit-form";
 
 export default async function CrmPage({
   searchParams,
@@ -107,6 +108,13 @@ export default async function CrmPage({
               {org.potentialFounder ? " · potential founder" : ""}
             </p>
             <p className="text-xs text-[var(--muted)]">id: {org.id}</p>
+            <CrmEditForm
+              kind="organisations"
+              id={org.id}
+              status={org.status}
+              notes={org.notes}
+              nextAction={org.nextAction}
+            />
           </article>
         ))}
       </section>
@@ -126,6 +134,13 @@ export default async function CrmPage({
               {p.trade} · {p.nextAction || "no next action"}
               {p.followUpDate ? ` · follow-up ${p.followUpDate.toISOString().slice(0, 10)}` : ""}
             </p>
+            <CrmEditForm
+              kind="people"
+              id={p.id}
+              status={p.status}
+              notes={p.notes}
+              nextAction={p.nextAction}
+            />
             <SimpleForm
               action="/api/communications"
               submitLabel="Log communication"

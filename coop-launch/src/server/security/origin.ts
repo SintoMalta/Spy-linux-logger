@@ -10,7 +10,18 @@ export function getAllowedOrigins(): string[] {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  return Array.from(new Set([env.APP_URL, ...extras]));
+  const base = Array.from(new Set([env.APP_URL, ...extras]));
+  // Local dual-stack convenience: treat localhost ↔ 127.0.0.1 as equivalent
+  const expanded = [...base];
+  for (const o of base) {
+    if (o.includes("localhost")) {
+      expanded.push(o.replace("localhost", "127.0.0.1"));
+    }
+    if (o.includes("127.0.0.1")) {
+      expanded.push(o.replace("127.0.0.1", "localhost"));
+    }
+  }
+  return Array.from(new Set(expanded));
 }
 
 export function assertValidOrigin(request: Request): void {

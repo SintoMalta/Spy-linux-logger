@@ -55,6 +55,12 @@ export async function POST(request: Request) {
         uploadedById: user.id,
       },
     });
+    if (linkedType === "RegistrationRequirement" && linkedId) {
+      await prisma.registrationRequirement.update({
+        where: { id: linkedId },
+        data: { evidenceDocumentId: doc.id },
+      });
+    }
     await writeAudit({
       actorId: user.id,
       action: "DOCUMENT_UPLOAD",

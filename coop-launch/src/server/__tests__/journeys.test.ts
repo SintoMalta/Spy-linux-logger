@@ -71,13 +71,18 @@ describe("origin + proxy IP", () => {
     expect(() => assertValidOrigin(req)).toThrow(OriginError);
   });
 
-  it("allows APP_URL origin", () => {
+  it("allows APP_URL origin and localhost/127.0.0.1 dual", () => {
     process.env.APP_URL = "http://localhost:3000";
     const req = new Request("http://localhost:3000/api/x", {
       method: "POST",
       headers: { origin: "http://localhost:3000" },
     });
     expect(() => assertValidOrigin(req)).not.toThrow();
+    const req2 = new Request("http://127.0.0.1:3000/api/x", {
+      method: "POST",
+      headers: { origin: "http://127.0.0.1:3000" },
+    });
+    expect(() => assertValidOrigin(req2)).not.toThrow();
   });
 
   it("ignores x-forwarded-for unless TRUST_PROXY", () => {
