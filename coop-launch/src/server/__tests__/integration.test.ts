@@ -76,12 +76,14 @@ describe.runIf(hasDb)("gate + DoD integration", () => {
         passwordHash,
       },
     });
+    const maxWeek = await prisma.stage.aggregate({ _max: { weekNumber: true } });
+    const weekNumber = (maxWeek._max.weekNumber ?? 100) + 1;
     const stage = await prisma.stage.create({
       data: {
-        weekNumber: 90 + (Date.now() % 5),
+        weekNumber,
         title: "Test stage",
         description: "test",
-        order: 90,
+        order: weekNumber,
       },
     });
     const task = await prisma.task.create({
@@ -120,12 +122,14 @@ describe.runIf(hasDb)("gate + DoD integration", () => {
         passwordHash,
       },
     });
+    const maxWeek = await prisma.stage.aggregate({ _max: { weekNumber: true } });
+    const weekNumber = (maxWeek._max.weekNumber ?? 200) + 1;
     const stage = await prisma.stage.create({
       data: {
-        weekNumber: 95 + (Date.now() % 3),
+        weekNumber,
         title: "Gate stage",
         description: "test",
-        order: 95,
+        order: weekNumber,
       },
     });
     const gate = await prisma.gate.create({
