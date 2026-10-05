@@ -4,43 +4,37 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiMutate } from "@/components/simple-form";
 
 export function GateControls({ gateId }: { gateId: string }) {
   const router = useRouter();
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState<string | null>(null);
 
-  async function advance() {
+  async function run(path: string, body?: unknown) {
     setMessage(null);
-    const res = await fetch(`/api/gates/${gateId}/advance`, { method: "POST" });
-    const data = await res.json().catch(() => ({}));
-    setMessage(data.error ?? (res.ok ? "Advanced" : "Failed"));
-    if (res.ok) router.refresh();
-  }
-
-  async function override() {
-    setMessage(null);
-    const res = await fetch(`/api/gates/${gateId}/override`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reason }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setMessage(data.error ?? (res.ok ? "Override recorded" : "Failed"));
-    if (res.ok) router.refresh();
+    try {
+      await apiMutate(path, {
+        method: "POST",
+        body: body ? JSON.stringify(body) : "{}",
+      });
+      setMessage("OK");
+      router.refresh();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Failed");
+    }
   }
 
   return (
     <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-      <Button type="button" variant="secondary" onClick={advance}>
-        Advance if gate passed
+      <Button type="button" variant="secondary" onClick={() => run(`/api/gates/${gateId}/evaluate`)}>
+        Auto-evaluate gate
       </Button>
-      <Input
-        placeholder="Override reason"
-        value={reason}
-        onChange={(e) => setReason(e.target.value)}
-      />
-      <Button type="button" variant="outline" onClick={override}>
+      <Button type="button" variant="secondary" onClick={() => run(`/api/gates/${gateId}/advance`)}>
+        Advance if passed
+      </Button>
+      <Input placeholder="Override reason" value={reason} onChange={(e) => setReason(e.target.value)} />
+      <Button type="button" variant="outline" onClick={() => run(`/api/gates/${gateId}/override`, { reason })}>
         Record override
       </Button>
       {message ? <p className="text-sm text-[var(--muted)]">{message}</p> : null}

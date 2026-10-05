@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { getRegistrationReadiness } from "@/server/registration/readiness";
+import { SimpleForm } from "@/components/simple-form";
 
 export default async function CoordinatorDashboard() {
   const user = await getCurrentUser();
@@ -14,7 +15,7 @@ export default async function CoordinatorDashboard() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [stages, openActions, waitingTasks, plan, readiness, recentAudits] =
+  const [stages, openActions, waitingTasks, plan, readiness, recentAudits, founder] =
     await Promise.all([
       prisma.stage.findMany({
         where: { deletedAt: null },
@@ -27,7 +28,7 @@ export default async function CoordinatorDashboard() {
         take: 8,
       }),
       prisma.task.findMany({
-        where: { status: { in: ["BLOCKED", "IN_PROGRESS"] }, deletedAt: null },
+        where: { status: { in: ["BLOCKED", "IN_PROGRESS", "WAITING_EXTERNAL"] }, deletedAt: null },
         include: { stage: true },
         take: 10,
         orderBy: { updatedAt: "desc" },
@@ -38,6 +39,7 @@ export default async function CoordinatorDashboard() {
       }),
       getRegistrationReadiness(),
       prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 6 }),
+      prisma.user.findFirst({ where: { role: "INDUSTRY_FOUNDER", deletedAt: null } }),
     ]);
 
   const current = stages.find((s) => s.status === "IN_PROGRESS") ?? stages[0];
@@ -91,11 +93,30 @@ export default async function CoordinatorDashboard() {
         </Panel>
 
         <Panel title="Needs from founder">
-          <ul className="space-y-3">
+          <SimpleForm
+            action="/api/founder-actions"
+            submitLabel="Create founder action"
+            fields={[
+              { name: "title", label: "Title", required: true },
+              { name: "detail", label: "Detail" },
+              {
+                name: "kind",
+                label: "Kind",
+                placeholder: "INTRODUCTION|CONTACT|ANSWER|REVIEW_CANDIDATE|REVIEW_FINDING|ATTEND|APPROVE|OTHER",
+              },
+              {
+                name: "assigneeId",
+                label: "Assignee user id",
+                required: true,
+                placeholder: founder?.id,
+              },
+            ]}
+          />
+          <ul className="mt-3 space-y-3">
             {openActions.map((a) => (
               <li key={a.id} className="text-sm">
                 <div className="font-medium">{a.title}</div>
-                <div className="text-[var(--muted)]">{a.assignee.name}</div>
+                <div className="text-[var(--muted)]">{a.assignee.name} · {a.kind}</div>
               </li>
             ))}
             {openActions.length === 0 ? (

@@ -6,11 +6,13 @@ const links = [
   { href: "/dashboard", label: "Coordinator", show: (u: SessionUser) => canManageProgramme(u) },
   { href: "/founder", label: "Founder", show: (u: SessionUser) => canAccessFounderDashboard(u) },
   { href: "/programme", label: "Programme", show: (u: SessionUser) => canManageProgramme(u) },
+  { href: "/daily-plan", label: "Daily plan", show: (u: SessionUser) => canManageProgramme(u) },
   { href: "/crm", label: "CRM", show: (u: SessionUser) => canManageProgramme(u) },
   { href: "/interviews", label: "Interviews", show: (u: SessionUser) => canManageProgramme(u) },
   { href: "/economic", label: "Economic", show: (u: SessionUser) => canManageProgramme(u) },
   { href: "/governance", label: "Governance", show: (u: SessionUser) => canManageProgramme(u) },
   { href: "/registration", label: "Registration", show: (u: SessionUser) => canManageProgramme(u) },
+  { href: "/weekly-report", label: "Weekly report", show: (u: SessionUser) => canManageProgramme(u) },
 ];
 
 export function AppNav({ user }: { user: SessionUser }) {

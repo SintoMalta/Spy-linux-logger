@@ -2,16 +2,22 @@
 CREATE TYPE "public"."Role" AS ENUM ('COORDINATOR', 'INDUSTRY_FOUNDER', 'FOUNDING_MEMBER', 'ADVISER', 'READ_ONLY', 'ADMIN');
 
 -- CreateEnum
-CREATE TYPE "public"."TaskStatus" AS ENUM ('NOT_STARTED', 'IN_PROGRESS', 'BLOCKED', 'ACHIEVED', 'CANCELLED');
+CREATE TYPE "public"."TaskStatus" AS ENUM ('NOT_STARTED', 'IN_PROGRESS', 'WAITING_EXTERNAL', 'BLOCKED', 'ACHIEVED', 'CANCELLED');
 
 -- CreateEnum
 CREATE TYPE "public"."GateCriterionType" AS ENUM ('BOOLEAN', 'NUMERIC_MIN', 'REQUIRED_DOCUMENT', 'REQUIRED_REVIEW', 'REQUIRED_EXTERNAL_ANSWER', 'MANUAL_APPROVAL');
 
 -- CreateEnum
-CREATE TYPE "public"."OrgPersonStatus" AS ENUM ('ACTIVE', 'CONTACTED', 'QUALIFIED', 'NURTURE', 'DO_NOT_PURSUE', 'ARCHIVED');
+CREATE TYPE "public"."GateMetricKey" AS ENUM ('NONE', 'INTERVIEW_COUNT', 'PROBLEM_TAG_COUNT', 'FOUNDER_CANDIDATE_COUNT', 'SUPPLIER_DISCUSSION_COUNT', 'SUPPLIER_OFFER_COUNT', 'ADVICE_OPEN_COUNT', 'DOCUMENT_LINKED_COUNT', 'REGISTRATION_MANDATORY_COMPLETE', 'WEEK9_DECISION', 'REGISTRATION_SUBMITTED', 'ORGANISATION_COUNT');
+
+-- CreateEnum
+CREATE TYPE "public"."OrgPersonStatus" AS ENUM ('NEW', 'CONTACTED', 'INTERVIEW_SCHEDULED', 'INTERVIEWED', 'POTENTIAL_MEMBER', 'POTENTIAL_FOUNDER', 'FOUNDING_WORKING_GROUP', 'DECLINED', 'FUTURE_MEMBER', 'DO_NOT_PURSUE', 'ARCHIVED');
 
 -- CreateEnum
 CREATE TYPE "public"."AssumptionConfidence" AS ENUM ('VERIFIED', 'ESTIMATE', 'ASSUMPTION');
+
+-- CreateEnum
+CREATE TYPE "public"."FinanceScenario" AS ENUM ('CONSERVATIVE', 'BASE', 'UPSIDE');
 
 -- CreateEnum
 CREATE TYPE "public"."FounderActionType" AS ENUM ('DONE', 'COMMENT', 'CALL_NESLI', 'DEFER');
@@ -20,7 +26,10 @@ CREATE TYPE "public"."FounderActionType" AS ENUM ('DONE', 'COMMENT', 'CALL_NESLI
 CREATE TYPE "public"."FounderActionStatus" AS ENUM ('OPEN', 'DONE', 'DEFERRED', 'CANCELLED');
 
 -- CreateEnum
-CREATE TYPE "public"."AdviceStatus" AS ENUM ('OPEN', 'IN_PROGRESS', 'ACCEPTED', 'DECLINED', 'DEFERRED');
+CREATE TYPE "public"."FounderActionKind" AS ENUM ('INTRODUCTION', 'CONTACT', 'ANSWER', 'REVIEW_CANDIDATE', 'REVIEW_FINDING', 'ATTEND', 'APPROVE', 'OTHER');
+
+-- CreateEnum
+CREATE TYPE "public"."AdviceStatus" AS ENUM ('OPEN', 'AWAITING_RESPONSE', 'ANSWERED', 'FOLLOW_UP_REQUIRED', 'CLOSED');
 
 -- CreateEnum
 CREATE TYPE "public"."RiskStatus" AS ENUM ('OPEN', 'MITIGATING', 'CLOSED', 'ACCEPTED');
@@ -32,7 +41,13 @@ CREATE TYPE "public"."RegistrationPriority" AS ENUM ('MANDATORY', 'IMPORTANT', '
 CREATE TYPE "public"."QuestionKind" AS ENUM ('TEXT', 'NUMBER', 'BOOLEAN', 'TAG', 'CONFIDENTIAL_FINANCIAL');
 
 -- CreateEnum
-CREATE TYPE "public"."StageStatus" AS ENUM ('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED');
+CREATE TYPE "public"."StageStatus" AS ENUM ('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED', 'REDESIGN', 'NO_GO', 'CONDITIONAL_GO', 'GO', 'REGISTRATION_READY', 'REGISTRATION_SUBMITTED');
+
+-- CreateEnum
+CREATE TYPE "public"."InterviewStatus" AS ENUM ('DRAFT', 'COMPLETED');
+
+-- CreateEnum
+CREATE TYPE "public"."DecisionStatus" AS ENUM ('DRAFT', 'FINAL');
 
 -- CreateTable
 CREATE TABLE "public"."User" (
@@ -42,6 +57,7 @@ CREATE TABLE "public"."User" (
     "passwordHash" TEXT NOT NULL,
     "role" "public"."Role" NOT NULL,
     "active" BOOLEAN NOT NULL DEFAULT true,
+    "mustChangePassword" BOOLEAN NOT NULL DEFAULT false,
     "deletedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -92,6 +108,7 @@ CREATE TABLE "public"."Stage" (
     "description" TEXT NOT NULL,
     "order" INTEGER NOT NULL,
     "status" "public"."StageStatus" NOT NULL DEFAULT 'NOT_STARTED',
+    "outcomeNote" TEXT NOT NULL DEFAULT '',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
@@ -109,11 +126,26 @@ CREATE TABLE "public"."Task" (
     "ownerUserId" TEXT,
     "dueAt" TIMESTAMP(3),
     "achievedAt" TIMESTAMP(3),
+    "waitingOnPersonId" TEXT,
+    "waitingOnOrgId" TEXT,
+    "dateRequested" TIMESTAMP(3),
+    "followUpDate" TIMESTAMP(3),
+    "priority" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
 
     CONSTRAINT "Task_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."TaskNote" (
+    "id" TEXT NOT NULL,
+    "taskId" TEXT NOT NULL,
+    "body" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TaskNote_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -160,6 +192,8 @@ CREATE TABLE "public"."DailyPlan" (
     "date" DATE NOT NULL,
     "notes" TEXT NOT NULL DEFAULT '',
     "plannedMinutes" INTEGER NOT NULL DEFAULT 240,
+    "endOfDayNotes" TEXT NOT NULL DEFAULT '',
+    "proposedJson" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -175,6 +209,7 @@ CREATE TABLE "public"."DailyPlanItem" (
     "minutes" INTEGER NOT NULL DEFAULT 30,
     "done" BOOLEAN NOT NULL DEFAULT false,
     "order" INTEGER NOT NULL DEFAULT 0,
+    "blockKey" TEXT,
 
     CONSTRAINT "DailyPlanItem_pkey" PRIMARY KEY ("id")
 );
@@ -211,6 +246,8 @@ CREATE TABLE "public"."GateCriterion" (
     "type" "public"."GateCriterionType" NOT NULL,
     "label" TEXT NOT NULL,
     "targetValue" DOUBLE PRECISION,
+    "metricKey" "public"."GateMetricKey" NOT NULL DEFAULT 'NONE',
+    "code" TEXT,
     "satisfied" BOOLEAN NOT NULL DEFAULT false,
     "evidenceNote" TEXT,
     "order" INTEGER NOT NULL DEFAULT 0,
@@ -247,9 +284,14 @@ CREATE TABLE "public"."GateOverride" (
 CREATE TABLE "public"."Organisation" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "sector" TEXT NOT NULL DEFAULT '',
-    "status" "public"."OrgPersonStatus" NOT NULL DEFAULT 'ACTIVE',
+    "trade" TEXT NOT NULL DEFAULT '',
+    "sector" TEXT NOT NULL DEFAULT 'construction',
+    "status" "public"."OrgPersonStatus" NOT NULL DEFAULT 'NEW',
     "notes" TEXT NOT NULL DEFAULT '',
+    "nextAction" TEXT NOT NULL DEFAULT '',
+    "followUpDate" TIMESTAMP(3),
+    "potentialFounder" BOOLEAN NOT NULL DEFAULT false,
+    "locality" TEXT NOT NULL DEFAULT '',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
@@ -265,8 +307,12 @@ CREATE TABLE "public"."Person" (
     "email" TEXT,
     "phone" TEXT,
     "roleTitle" TEXT,
-    "status" "public"."OrgPersonStatus" NOT NULL DEFAULT 'ACTIVE',
+    "trade" TEXT NOT NULL DEFAULT '',
+    "status" "public"."OrgPersonStatus" NOT NULL DEFAULT 'NEW',
     "notes" TEXT NOT NULL DEFAULT '',
+    "nextAction" TEXT NOT NULL DEFAULT '',
+    "followUpDate" TIMESTAMP(3),
+    "potentialFounder" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
@@ -305,6 +351,7 @@ CREATE TABLE "public"."InterviewTemplateQuestion" (
     "prompt" TEXT NOT NULL,
     "kind" "public"."QuestionKind" NOT NULL DEFAULT 'TEXT',
     "order" INTEGER NOT NULL DEFAULT 0,
+    "topic" TEXT NOT NULL DEFAULT '',
 
     CONSTRAINT "InterviewTemplateQuestion_pkey" PRIMARY KEY ("id")
 );
@@ -318,7 +365,9 @@ CREATE TABLE "public"."Interview" (
     "interviewerId" TEXT NOT NULL,
     "conductedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "notes" TEXT NOT NULL DEFAULT '',
+    "status" "public"."InterviewStatus" NOT NULL DEFAULT 'DRAFT',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
 
     CONSTRAINT "Interview_pkey" PRIMARY KEY ("id")
@@ -358,12 +407,16 @@ CREATE TABLE "public"."InterviewAnswerTag" (
 CREATE TABLE "public"."FounderAssessment" (
     "id" TEXT NOT NULL,
     "subjectUserId" TEXT,
+    "organisationId" TEXT,
+    "personId" TEXT,
     "authorId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "positiveNotes" TEXT NOT NULL DEFAULT '',
     "redFlagPrompts" TEXT NOT NULL DEFAULT '',
     "evidenceNotes" TEXT NOT NULL DEFAULT '',
     "status" TEXT NOT NULL DEFAULT 'DRAFT',
+    "founderReviewed" BOOLEAN NOT NULL DEFAULT false,
+    "founderReviewNote" TEXT NOT NULL DEFAULT '',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
@@ -386,12 +439,28 @@ CREATE TABLE "public"."Supplier" (
 );
 
 -- CreateTable
+CREATE TABLE "public"."SupplierDiscussion" (
+    "id" TEXT NOT NULL,
+    "supplierId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "summary" TEXT NOT NULL,
+    "occurredAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SupplierDiscussion_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "public"."SupplierOffer" (
     "id" TEXT NOT NULL,
     "supplierId" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "unitPrice" DECIMAL(12,2),
     "currency" TEXT NOT NULL DEFAULT 'EUR',
+    "discountPct" DOUBLE PRECISION,
+    "rebateNotes" TEXT NOT NULL DEFAULT '',
+    "terms" TEXT NOT NULL DEFAULT '',
+    "validUntil" TIMESTAMP(3),
     "confidentialMemberScope" TEXT,
     "notes" TEXT NOT NULL DEFAULT '',
     "assumptionConfidence" "public"."AssumptionConfidence" NOT NULL DEFAULT 'ESTIMATE',
@@ -410,7 +479,7 @@ CREATE TABLE "public"."FinancialAssumption" (
     "value" TEXT NOT NULL,
     "unit" TEXT,
     "confidence" "public"."AssumptionConfidence" NOT NULL,
-    "scenario" TEXT,
+    "scenario" "public"."FinanceScenario" NOT NULL DEFAULT 'BASE',
     "notes" TEXT NOT NULL DEFAULT '',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -440,6 +509,9 @@ CREATE TABLE "public"."AdviceItem" (
     "body" TEXT NOT NULL,
     "status" "public"."AdviceStatus" NOT NULL DEFAULT 'OPEN',
     "adviserId" TEXT,
+    "askedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "responseNotes" TEXT NOT NULL DEFAULT '',
+    "followUpDate" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
@@ -454,6 +526,7 @@ CREATE TABLE "public"."Meeting" (
     "scheduledAt" TIMESTAMP(3) NOT NULL,
     "location" TEXT,
     "notes" TEXT NOT NULL DEFAULT '',
+    "actions" TEXT NOT NULL DEFAULT '',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
@@ -477,6 +550,7 @@ CREATE TABLE "public"."Decision" (
     "meetingId" TEXT,
     "title" TEXT NOT NULL,
     "body" TEXT NOT NULL,
+    "status" "public"."DecisionStatus" NOT NULL DEFAULT 'DRAFT',
     "decidedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "decidedById" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -543,6 +617,10 @@ CREATE TABLE "public"."RegistrationRequirement" (
     "priority" "public"."RegistrationPriority" NOT NULL,
     "evidenceDocumentId" TEXT,
     "completed" BOOLEAN NOT NULL DEFAULT false,
+    "notes" TEXT NOT NULL DEFAULT '',
+    "responsibleUserId" TEXT,
+    "dueDate" TIMESTAMP(3),
+    "completedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -554,11 +632,13 @@ CREATE TABLE "public"."FounderActionRequest" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "detail" TEXT NOT NULL DEFAULT '',
+    "kind" "public"."FounderActionKind" NOT NULL DEFAULT 'OTHER',
     "assigneeId" TEXT NOT NULL,
     "createdById" TEXT NOT NULL,
     "status" "public"."FounderActionStatus" NOT NULL DEFAULT 'OPEN',
     "lastAction" "public"."FounderActionType",
     "comment" TEXT,
+    "followUpDate" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
@@ -584,10 +664,22 @@ CREATE TABLE "public"."WeeklyReport" (
     "weekNumber" INTEGER NOT NULL,
     "body" TEXT NOT NULL,
     "authoredById" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'DRAFT',
     "publishedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "WeeklyReport_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ProgrammeFlag" (
+    "id" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ProgrammeFlag_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -644,6 +736,9 @@ CREATE UNIQUE INDEX "Template_code_key" ON "public"."Template"("code");
 CREATE UNIQUE INDEX "RegistrationRequirement_code_key" ON "public"."RegistrationRequirement"("code");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "ProgrammeFlag_key_key" ON "public"."ProgrammeFlag"("key");
+
+-- CreateIndex
 CREATE INDEX "AuditLog_entityType_entityId_idx" ON "public"."AuditLog"("entityType", "entityId");
 
 -- CreateIndex
@@ -660,6 +755,15 @@ ALTER TABLE "public"."Task" ADD CONSTRAINT "Task_stageId_fkey" FOREIGN KEY ("sta
 
 -- AddForeignKey
 ALTER TABLE "public"."Task" ADD CONSTRAINT "Task_ownerUserId_fkey" FOREIGN KEY ("ownerUserId") REFERENCES "public"."User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Task" ADD CONSTRAINT "Task_waitingOnPersonId_fkey" FOREIGN KEY ("waitingOnPersonId") REFERENCES "public"."Person"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Task" ADD CONSTRAINT "Task_waitingOnOrgId_fkey" FOREIGN KEY ("waitingOnOrgId") REFERENCES "public"."Organisation"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."TaskNote" ADD CONSTRAINT "TaskNote_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "public"."Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."TaskChecklistItem" ADD CONSTRAINT "TaskChecklistItem_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "public"."Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -749,7 +853,19 @@ ALTER TABLE "public"."InterviewAnswerTag" ADD CONSTRAINT "InterviewAnswerTag_tag
 ALTER TABLE "public"."FounderAssessment" ADD CONSTRAINT "FounderAssessment_subjectUserId_fkey" FOREIGN KEY ("subjectUserId") REFERENCES "public"."User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "public"."FounderAssessment" ADD CONSTRAINT "FounderAssessment_organisationId_fkey" FOREIGN KEY ("organisationId") REFERENCES "public"."Organisation"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."FounderAssessment" ADD CONSTRAINT "FounderAssessment_personId_fkey" FOREIGN KEY ("personId") REFERENCES "public"."Person"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "public"."FounderAssessment" ADD CONSTRAINT "FounderAssessment_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."SupplierDiscussion" ADD CONSTRAINT "SupplierDiscussion_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "public"."Supplier"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."SupplierDiscussion" ADD CONSTRAINT "SupplierDiscussion_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."SupplierOffer" ADD CONSTRAINT "SupplierOffer_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "public"."Supplier"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -783,6 +899,9 @@ ALTER TABLE "public"."Document" ADD CONSTRAINT "Document_uploadedById_fkey" FORE
 
 -- AddForeignKey
 ALTER TABLE "public"."RegistrationRequirement" ADD CONSTRAINT "RegistrationRequirement_evidenceDocumentId_fkey" FOREIGN KEY ("evidenceDocumentId") REFERENCES "public"."Document"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."RegistrationRequirement" ADD CONSTRAINT "RegistrationRequirement_responsibleUserId_fkey" FOREIGN KEY ("responsibleUserId") REFERENCES "public"."User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."FounderActionRequest" ADD CONSTRAINT "FounderActionRequest_assigneeId_fkey" FOREIGN KEY ("assigneeId") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

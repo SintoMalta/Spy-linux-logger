@@ -6,6 +6,7 @@ import {
   loginWithPassword,
 } from "@/server/auth/session";
 import { canManageProgramme } from "@/server/auth/rbac";
+import { assertValidOrigin, clientIp, OriginError } from "@/server/security/origin";
 
 const bodySchema = z.object({
   email: z.string().email(),
@@ -14,11 +15,10 @@ const bodySchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    assertValidOrigin(request);
     const json = await request.json();
     const body = bodySchema.parse(json);
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      "127.0.0.1";
+    const ip = clientIp(request);
     const userAgent = request.headers.get("user-agent") ?? undefined;
     const { token, user } = await loginWithPassword(body.email, body.password, {
       ip,
@@ -36,6 +36,9 @@ export async function POST(request: Request) {
     });
     return res;
   } catch (err) {
+    if (err instanceof OriginError) {
+      return NextResponse.json({ error: err.message, code: "ORIGIN" }, { status: 403 });
+    }
     if (err instanceof AuthError) {
       const status =
         err.code === "RATE_LIMITED"

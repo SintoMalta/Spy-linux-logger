@@ -17,6 +17,7 @@ export async function createDecision(
       body: input.body,
       meetingId: input.meetingId,
       decidedById: user.id,
+      status: "DRAFT",
     },
   });
   await writeAudit({
@@ -24,7 +25,29 @@ export async function createDecision(
     action: "DECISION_CREATED",
     entityType: "Decision",
     entityId: decision.id,
-    after: { title: decision.title },
+    after: { title: decision.title, status: decision.status },
+  });
+  return decision;
+}
+
+export async function finaliseDecision(user: SessionUser, decisionId: string) {
+  if (!canCreateDecision(user)) {
+    throw new AuthError("FORBIDDEN", "Cannot finalise decisions");
+  }
+  const existing = await prisma.decision.findUnique({ where: { id: decisionId } });
+  if (!existing) throw new DomainError("NOT_FOUND", "Decision not found");
+  if (existing.status === "FINAL") {
+    throw new DomainError("IMMUTABLE", "Decision already finalised");
+  }
+  const decision = await prisma.decision.update({
+    where: { id: decisionId },
+    data: { status: "FINAL", decidedAt: new Date() },
+  });
+  await writeAudit({
+    actorId: user.id,
+    action: "DECISION_FINALISED",
+    entityType: "Decision",
+    entityId: decision.id,
   });
   return decision;
 }
@@ -32,14 +55,14 @@ export async function createDecision(
 export async function updateDecisionForbidden(): Promise<never> {
   throw new DomainError(
     "IMMUTABLE",
-    "Decisions are immutable and cannot be updated",
+    "Final decisions are immutable and cannot be updated",
   );
 }
 
 export async function deleteDecisionForbidden(): Promise<never> {
   throw new DomainError(
     "IMMUTABLE",
-    "Decisions are immutable and cannot be deleted",
+    "Decisions cannot be deleted",
   );
 }
 
