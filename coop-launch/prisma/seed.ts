@@ -2,11 +2,6 @@ import { PrismaClient, type Role } from "@prisma/client";
 import * as argon2 from "argon2";
 import { TEMPLATE_BODIES } from "../src/server/governance/decisions";
 import { calculateMemberValue } from "../src/server/economic/finance";
-import {
-  INTERVIEW_TOPICS,
-  PROGRAMME_WEEKS,
-  REGISTRATION_CHECKLIST,
-} from "../src/server/programme/programme-data";
 
 const prisma = new PrismaClient();
 
@@ -19,111 +14,195 @@ async function hash(pw: string) {
   });
 }
 
+const WEEKS: { title: string; description: string; tasks: string[]; gate: string }[] = [
+  {
+    title: "Kick-off & framing",
+    description: "Align founders on purpose, scope, and evidence standards.",
+    tasks: ["Charter draft started", "Working rhythm agreed"],
+    gate: "Founders aligned; charter draft started",
+  },
+  {
+    title: "Stakeholder map",
+    description: "Map organisations and people to interview.",
+    tasks: ["CRM seeded with target list", "Interview plan approved"],
+    gate: "CRM seeded; interview plan approved",
+  },
+  {
+    title: "Problem discovery",
+    description: "Conduct discovery interviews.",
+    tasks: ["Log first interview set", "Tag recurring problems"],
+    gate: "Interviews logged; tags populated",
+  },
+  {
+    title: "Problem Matrix",
+    description: "Aggregate and rank problems without leaking confidential figures.",
+    tasks: ["Build Problem Matrix view", "Rank top problems with evidence"],
+    gate: "Matrix reviewed; top problems ranked",
+  },
+  {
+    title: "Founder fit",
+    description: "Draft founder assessment with careful language.",
+    tasks: ["Draft FounderAssessment", "Capture evidence notes"],
+    gate: "Assessment drafted (careful language)",
+  },
+  {
+    title: "Solution options",
+    description: "Document solution options with evidence links.",
+    tasks: ["Option shortlist documented", "Evidence attached to options"],
+    gate: "Options documented with evidence",
+  },
+  {
+    title: "Supplier scan",
+    description: "Collect comparable supplier offers.",
+    tasks: ["Identify suppliers", "Capture comparable offers"],
+    gate: "At least one comparable offer set",
+  },
+  {
+    title: "Economics",
+    description: "Label assumptions and build scenarios.",
+    tasks: ["Record labelled assumptions", "Build scenario A/B"],
+    gate: "Assumptions labelled; scenarios present",
+  },
+  {
+    title: "Member value",
+    description: "Draft member value statement from labelled inputs.",
+    tasks: ["Draft MemberValueStatement", "Review with founder"],
+    gate: "Draft MemberValueStatement complete",
+  },
+  {
+    title: "Governance pack",
+    description: "Advice, risks, and decisions current.",
+    tasks: ["Advice register current", "Risks and decisions updated"],
+    gate: "Governance pack current",
+  },
+  {
+    title: "Registration pack",
+    description: "Open checklist and list blockers.",
+    tasks: ["Open registration checklist", "List mandatory blockers"],
+    gate: "Checklist open; blockers listed",
+  },
+  {
+    title: "Go / no-go",
+    description: "Gate review and registration readiness check.",
+    tasks: ["Run final gate review", "Confirm registration readiness"],
+    gate: "Gate review complete; readiness reviewed",
+  },
+];
+
 async function upsertUser(
   email: string,
   name: string,
   role: Role,
   password: string,
-  mustChangePassword = false,
 ) {
   const passwordHash = await hash(password);
   return prisma.user.upsert({
     where: { email },
-    update: { name, role, passwordHash, active: true, deletedAt: null, mustChangePassword },
-    create: { email, name, role, passwordHash, mustChangePassword },
+    update: { name, role, passwordHash, active: true, deletedAt: null },
+    create: { email, name, role, passwordHash },
   });
 }
 
-async function main() {
-  if (process.env.NODE_ENV === "production" && process.env.ALLOW_DEMO_SEED !== "true") {
-    console.error(
-      "Refusing demo seed in production. Use scripts/bootstrap-admin.ts for the first ADMIN/COORDINATOR.",
+function requireSeedPassword(envName: string, fallbackDev: string): string {
+  const fromEnv = process.env[envName]?.trim();
+  if (fromEnv) {
+    if (fromEnv === "ChangeMeNow!") {
+      throw new Error(`${envName} must not be the demo password ChangeMeNow!`);
+    }
+    if (fromEnv.length < 16) {
+      throw new Error(`${envName} must be at least 16 characters`);
+    }
+    return fromEnv;
+  }
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      `Production seed requires ${envName} (strong password, never ChangeMeNow!)`,
     );
-    process.exit(1);
   }
+  return fallbackDev;
+}
 
-  // Clear volatile demo data for idempotent programme rebuild (dev/test only)
-  if (process.env.SEED_RESET === "true") {
-    await prisma.$executeRawUnsafe(`
-      TRUNCATE TABLE
-        "InterviewAnswerTag","InterviewAnswer","Interview","InterviewTemplateQuestion","InterviewTemplate",
-        "Communication","FounderAssessment","SupplierDiscussion","SupplierOffer","Supplier",
-        "FinancialAssumption","MemberValueStatement","AdviceItem","MeetingAttendee","Decision","Meeting","Risk",
-        "RegistrationRequirement","Document","FounderActionRequest","DailyPlanItem","DailyPlan","TimeEntry",
-        "TaskNote","DefinitionOfDoneCriterion","TaskChecklistItem","TaskDependency","Task",
-        "GateOverride","GateReview","GateCriterion","Gate","Stage","ProgrammeFlag","ProblemTag","Template",
-        "Notification","WeeklyReport","AuditLog","Organisation","Person"
-      CASCADE;
-    `);
-  }
+async function main() {
+  const pwNesli = requireSeedPassword("SEED_PASSWORD_NESLI", "ChangeMeNow!");
+  const pwFounder = requireSeedPassword("SEED_PASSWORD_FOUNDER", "ChangeMeNow!");
+  const pwAdmin = requireSeedPassword("SEED_PASSWORD_ADMIN", "ChangeMeNow!");
+  const pwAdviser =
+    process.env.SEED_PASSWORD_ADVISER?.trim() ||
+    (process.env.NODE_ENV === "production" ? pwAdmin : "ChangeMeNow!");
 
   const nesli = await upsertUser(
     "nesli@cooplaunch.mt",
     "Nesli",
     "COORDINATOR",
-    "ChangeMeNow!",
-    true,
+    pwNesli,
   );
   const founder = await upsertUser(
     "founder@cooplaunch.mt",
     "Industry Founder",
     "INDUSTRY_FOUNDER",
-    "ChangeMeNow!",
-    true,
+    pwFounder,
   );
   const adviser = await upsertUser(
     "adviser@cooplaunch.mt",
     "Programme Adviser",
     "ADVISER",
-    "ChangeMeNow!",
-    true,
+    pwAdviser,
   );
-  await upsertUser("admin@cooplaunch.mt", "Admin", "ADMIN", "ChangeMeNow!", true);
+  await upsertUser("admin@cooplaunch.mt", "Admin", "ADMIN", pwAdmin);
 
-  for (const week of PROGRAMME_WEEKS) {
+  for (let i = 0; i < WEEKS.length; i++) {
+    const week = i + 1;
+    const w = WEEKS[i];
     const stage = await prisma.stage.upsert({
-      where: { weekNumber: week.weekNumber },
+      where: { weekNumber: week },
       update: {
-        title: week.title,
-        description: week.description,
-        order: week.weekNumber,
-        status: week.weekNumber === 1 ? "IN_PROGRESS" : "NOT_STARTED",
+        title: w.title,
+        description: w.description,
+        order: week,
+        status: week === 1 ? "IN_PROGRESS" : "NOT_STARTED",
         deletedAt: null,
       },
       create: {
-        weekNumber: week.weekNumber,
-        title: week.title,
-        description: week.description,
-        order: week.weekNumber,
-        status: week.weekNumber === 1 ? "IN_PROGRESS" : "NOT_STARTED",
+        weekNumber: week,
+        title: w.title,
+        description: w.description,
+        order: week,
+        status: week === 1 ? "IN_PROGRESS" : "NOT_STARTED",
       },
     });
 
-    for (const t of week.tasks) {
-      let task = await prisma.task.findFirst({
-        where: { stageId: stage.id, title: t.title },
+    for (const taskTitle of w.tasks) {
+      const existing = await prisma.task.findFirst({
+        where: { stageId: stage.id, title: taskTitle },
       });
-      if (!task) {
-        task = await prisma.task.create({
+      const task =
+        existing ??
+        (await prisma.task.create({
           data: {
             stageId: stage.id,
-            title: t.title,
-            description: t.description,
+            title: taskTitle,
+            description: `${taskTitle} for week ${week}`,
             ownerUserId: nesli.id,
-            status: week.weekNumber === 1 ? "IN_PROGRESS" : "NOT_STARTED",
+            status: week === 1 ? "IN_PROGRESS" : "NOT_STARTED",
           },
+        }));
+
+      const dodLabel = `Evidence recorded for: ${taskTitle}`;
+      const dod = await prisma.definitionOfDoneCriterion.findFirst({
+        where: { taskId: task.id, label: dodLabel },
+      });
+      if (!dod) {
+        await prisma.definitionOfDoneCriterion.create({
+          data: { taskId: task.id, label: dodLabel, order: 0 },
         });
       }
-      for (let i = 0; i < t.dod.length; i++) {
-        const label = t.dod[i];
-        const existing = await prisma.definitionOfDoneCriterion.findFirst({
-          where: { taskId: task.id, label },
+      const check = await prisma.taskChecklistItem.findFirst({
+        where: { taskId: task.id },
+      });
+      if (!check) {
+        await prisma.taskChecklistItem.create({
+          data: { taskId: task.id, label: "Capture notes / artefact", order: 0 },
         });
-        if (!existing) {
-          await prisma.definitionOfDoneCriterion.create({
-            data: { taskId: task.id, label, order: i },
-          });
-        }
       }
     }
 
@@ -132,311 +211,316 @@ async function main() {
       (await prisma.gate.create({
         data: {
           stageId: stage.id,
-          title: week.gateTitle,
-          description: week.gateDescription,
+          title: `Week ${week} gate`,
+          description: w.gate,
         },
       }));
 
-    await prisma.gate.update({
-      where: { id: gate.id },
-      data: { title: week.gateTitle, description: week.gateDescription },
+    const critLabel = w.gate;
+    const crit = await prisma.gateCriterion.findFirst({
+      where: { gateId: gate.id, label: critLabel },
     });
-
-    for (let i = 0; i < week.criteria.length; i++) {
-      const c = week.criteria[i];
-      const existing = await prisma.gateCriterion.findFirst({
-        where: { gateId: gate.id, label: c.label },
+    if (!crit) {
+      await prisma.gateCriterion.create({
+        data: {
+          gateId: gate.id,
+          type: "MANUAL_APPROVAL",
+          label: critLabel,
+          order: 0,
+        },
       });
-      if (!existing) {
-        await prisma.gateCriterion.create({
-          data: {
-            gateId: gate.id,
-            type: c.type,
-            label: c.label,
-            targetValue: c.targetValue,
-            metricKey: c.metricKey ?? "NONE",
-            code: c.code,
-            order: i,
-          },
-        });
-      } else {
-        await prisma.gateCriterion.update({
-          where: { id: existing.id },
-          data: {
-            type: c.type,
-            targetValue: c.targetValue,
-            metricKey: c.metricKey ?? "NONE",
-            code: c.code,
-            order: i,
-          },
-        });
-      }
     }
   }
 
-  // Construction-only fictional CRM
-  const orgs = [
-    {
-      id: "seed-org-volt",
-      name: "Volt & Sparks Demo Electrical Ltd (FICTIONAL)",
-      trade: "electrical",
-      status: "CONTACTED" as const,
-      potentialFounder: true,
-      locality: "Birkirkara (demo)",
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const plan = await prisma.dailyPlan.upsert({
+    where: { userId_date: { userId: nesli.id, date: today } },
+    update: { plannedMinutes: 240, notes: "Focus on week 1 evidence" },
+    create: {
+      userId: nesli.id,
+      date: today,
+      plannedMinutes: 240,
+      notes: "Focus on week 1 evidence",
     },
-    {
-      id: "seed-org-pipe",
-      name: "AquaFlow Demo Plumbing Co (FICTIONAL)",
-      trade: "plumbing",
-      status: "INTERVIEW_SCHEDULED" as const,
-      potentialFounder: false,
-      locality: "Mosta (demo)",
+  });
+  const planItemCount = await prisma.dailyPlanItem.count({ where: { planId: plan.id } });
+  if (planItemCount === 0) {
+    await prisma.dailyPlanItem.createMany({
+      data: [
+        { planId: plan.id, title: "Review charter draft", minutes: 60, order: 0 },
+        { planId: plan.id, title: "Call Industry Founder", minutes: 30, order: 1 },
+        { planId: plan.id, title: "Prepare interview list", minutes: 90, order: 2 },
+        { planId: plan.id, title: "Update gate notes", minutes: 60, order: 3 },
+      ],
+    });
+  }
+
+  await prisma.founderActionRequest.createMany({
+    data: [
+      {
+        title: "Confirm availability for kick-off call",
+        detail: "Propose two slots this week.",
+        assigneeId: founder.id,
+        createdById: nesli.id,
+        status: "OPEN",
+      },
+      {
+        title: "Share three target organisations",
+        detail: "Names only — no confidential pricing.",
+        assigneeId: founder.id,
+        createdById: nesli.id,
+        status: "OPEN",
+      },
+    ],
+    skipDuplicates: true,
+  });
+
+  const orgA = await prisma.organisation.upsert({
+    where: { id: "seed-org-harbor" },
+    update: { name: "Harbor Fresh Ltd", sector: "Food wholesale", status: "CONTACTED" },
+    create: {
+      id: "seed-org-harbor",
+      name: "Harbor Fresh Ltd",
+      sector: "Food wholesale",
+      status: "CONTACTED",
+      notes: "Fictional contact for discovery",
     },
-    {
-      id: "seed-org-build",
-      name: "StonePath Demo Builders (FICTIONAL)",
-      trade: "builder",
-      status: "NEW" as const,
-      potentialFounder: true,
-      locality: "Żebbuġ (demo)",
+  });
+  const orgB = await prisma.organisation.upsert({
+    where: { id: "seed-org-valletta" },
+    update: { name: "Valletta Kitchen Co-op Interest", sector: "Hospitality", status: "NURTURE" },
+    create: {
+      id: "seed-org-valletta",
+      name: "Valletta Kitchen Co-op Interest",
+      sector: "Hospitality",
+      status: "NURTURE",
+      notes: "Fictional",
     },
-    {
-      id: "seed-org-mat",
-      name: "HardBase Demo Materials Supply (FICTIONAL)",
-      trade: "materials_supplier",
-      status: "CONTACTED" as const,
-      potentialFounder: false,
-      locality: "Ħal Far (demo)",
-    },
-    {
-      id: "seed-org-roof",
-      name: "RidgeLine Demo Roofing (FICTIONAL)",
-      trade: "builder",
-      status: "FUTURE_MEMBER" as const,
-      potentialFounder: false,
-      locality: "Rabat (demo)",
-    },
-    {
+  });
+  await prisma.organisation.upsert({
+    where: { id: "seed-org-skip" },
+    update: { status: "DO_NOT_PURSUE" },
+    create: {
       id: "seed-org-skip",
-      name: "SkipMe Demo Contractors (FICTIONAL)",
-      trade: "builder",
-      status: "DO_NOT_PURSUE" as const,
-      potentialFounder: false,
-      locality: "n/a",
+      name: "Skip Logistics Demo",
+      sector: "Logistics",
+      status: "DO_NOT_PURSUE",
+      notes: "Marked do not pursue — fictional",
     },
-  ];
+  });
 
-  for (const o of orgs) {
-    await prisma.organisation.upsert({
-      where: { id: o.id },
-      update: {
-        name: o.name,
-        trade: o.trade,
-        sector: "construction",
-        status: o.status,
-        potentialFounder: o.potentialFounder,
-        locality: o.locality,
-        notes: "Obviously fictional construction demo contact",
-        deletedAt: null,
-      },
-      create: {
-        id: o.id,
-        name: o.name,
-        trade: o.trade,
-        sector: "construction",
-        status: o.status,
-        potentialFounder: o.potentialFounder,
-        locality: o.locality,
-        notes: "Obviously fictional construction demo contact",
-      },
-    });
-  }
-
-  const people = [
-    {
-      id: "seed-person-alex",
-      organisationId: "seed-org-volt",
-      name: "Alex Demo-Electric",
-      trade: "electrical",
-      status: "POTENTIAL_FOUNDER" as const,
-      potentialFounder: true,
-      roleTitle: "Owner",
+  const personA = await prisma.person.upsert({
+    where: { id: "seed-person-maya" },
+    update: {},
+    create: {
+      id: "seed-person-maya",
+      organisationId: orgA.id,
+      name: "Maya Camilleri",
+      email: "maya@example.invalid",
+      roleTitle: "Procurement lead",
+      status: "CONTACTED",
     },
-    {
-      id: "seed-person-blair",
-      organisationId: "seed-org-pipe",
-      name: "Blair Demo-Plumb",
-      trade: "plumbing",
-      status: "INTERVIEW_SCHEDULED" as const,
-      potentialFounder: false,
-      roleTitle: "Supervisor",
+  });
+  await prisma.person.upsert({
+    where: { id: "seed-person-luca" },
+    update: {},
+    create: {
+      id: "seed-person-luca",
+      organisationId: orgB.id,
+      name: "Luca Bonnici",
+      email: "luca@example.invalid",
+      roleTitle: "Owner-chef",
+      status: "QUALIFIED",
     },
-    {
-      id: "seed-person-casey",
-      organisationId: "seed-org-build",
-      name: "Casey Demo-Build",
-      trade: "builder",
-      status: "POTENTIAL_FOUNDER" as const,
-      potentialFounder: true,
-      roleTitle: "Director",
-    },
-  ];
-
-  for (const p of people) {
-    await prisma.person.upsert({
-      where: { id: p.id },
-      update: { ...p, email: `${p.id}@example.invalid`, deletedAt: null },
-      create: { ...p, email: `${p.id}@example.invalid` },
-    });
-  }
+  });
 
   let template = await prisma.interviewTemplate.findFirst({
-    where: { name: "Construction discovery v1" },
+    where: { name: "Discovery v1" },
     include: { questions: true },
   });
   if (!template) {
     template = await prisma.interviewTemplate.create({
       data: {
-        name: "Construction discovery v1",
-        description: "Structured construction interview",
+        name: "Discovery v1",
+        description: "Problem discovery interview",
         questions: {
-          create: INTERVIEW_TOPICS.map((q, order) => ({
-            prompt: q.prompt,
-            topic: q.topic,
-            kind: q.kind ?? "TEXT",
-            order,
-          })),
+          create: [
+            { prompt: "What is the main procurement pain?", kind: "TEXT", order: 0 },
+            { prompt: "Tag the problem theme", kind: "TAG", order: 1 },
+            {
+              prompt: "Approximate annual spend (confidential)",
+              kind: "CONFIDENTIAL_FINANCIAL",
+              order: 2,
+            },
+          ],
         },
       },
       include: { questions: true },
     });
   }
 
-  for (const tag of [
-    "Materials price volatility",
-    "Payment delays",
-    "Labour shortages",
-    "Tender access barriers",
-  ]) {
-    await prisma.problemTag.upsert({
-      where: { name: tag },
-      update: {},
-      create: { name: tag },
-    });
-  }
-
-  // Supplier
-  const supplier = await prisma.supplier.upsert({
-    where: { id: "seed-supplier-hardbase" },
-    update: {
-      name: "HardBase Demo Materials Supply (FICTIONAL)",
-      category: "construction_materials",
-      contact: "sales-demo@example.invalid",
-    },
-    create: {
-      id: "seed-supplier-hardbase",
-      name: "HardBase Demo Materials Supply (FICTIONAL)",
-      category: "construction_materials",
-      contact: "sales-demo@example.invalid",
-      notes: "Fictional materials supplier for demo offers",
-    },
+  const tagSupply = await prisma.problemTag.upsert({
+    where: { name: "Supply reliability" },
+    update: {},
+    create: { name: "Supply reliability" },
+  });
+  const tagPrice = await prisma.problemTag.upsert({
+    where: { name: "Price volatility" },
+    update: {},
+    create: { name: "Price volatility" },
   });
 
-  if ((await prisma.supplierDiscussion.count({ where: { supplierId: supplier.id } })) === 0) {
-    await prisma.supplierDiscussion.create({
+  const existingInterview = await prisma.interview.findFirst({
+    where: { organisationId: orgA.id },
+  });
+  if (!existingInterview) {
+    const interview = await prisma.interview.create({
       data: {
-        supplierId: supplier.id,
-        userId: nesli.id,
-        summary: "Intro call on collective dry materials basket (fictional).",
+        templateId: template.id,
+        organisationId: orgA.id,
+        personId: personA.id,
+        interviewerId: nesli.id,
+        notes: "Fictional discovery interview",
       },
     });
-  }
-  if ((await prisma.supplierOffer.count({ where: { supplierId: supplier.id } })) === 0) {
-    await prisma.supplierOffer.create({
+    const qText = template.questions.find((q) => q.kind === "TEXT")!;
+    const qTag = template.questions.find((q) => q.kind === "TAG")!;
+    const qFin = template.questions.find((q) => q.kind === "CONFIDENTIAL_FINANCIAL")!;
+    const a1 = await prisma.interviewAnswer.create({
       data: {
-        supplierId: supplier.id,
-        description: "Demo collective materials basket",
-        unitPrice: 2500,
-        currency: "EUR",
-        discountPct: 6,
-        terms: "Net 30 — fictional",
-        assumptionConfidence: "ESTIMATE",
+        interviewId: interview.id,
+        questionId: qText.id,
+        valueText: "Late deliveries disrupt kitchen planning",
       },
+    });
+    const a2 = await prisma.interviewAnswer.create({
+      data: {
+        interviewId: interview.id,
+        questionId: qTag.id,
+        valueText: "Supply reliability",
+      },
+    });
+    await prisma.interviewAnswer.create({
+      data: {
+        interviewId: interview.id,
+        questionId: qFin.id,
+        valueNumber: 120000,
+        confidential: true,
+      },
+    });
+    await prisma.interviewAnswerTag.createMany({
+      data: [
+        { answerId: a1.id, tagId: tagSupply.id },
+        { answerId: a2.id, tagId: tagSupply.id },
+        { answerId: a2.id, tagId: tagPrice.id },
+      ],
+      skipDuplicates: true,
     });
   }
 
-  for (const scenario of ["CONSERVATIVE", "BASE", "UPSIDE"] as const) {
-    const discount = scenario === "CONSERVATIVE" ? "4" : scenario === "BASE" ? "7" : "10";
-    await prisma.financialAssumption.upsert({
-      where: { key_scenario: { key: "materials_discount_pct", scenario } },
-      update: {
-        label: "Expected materials discount",
-        value: discount,
-        unit: "%",
-        confidence: scenario === "BASE" ? "ESTIMATE" : "ASSUMPTION",
+  await prisma.founderAssessment.createMany({
+    data: [
+      {
+        subjectUserId: founder.id,
+        authorId: nesli.id,
+        title: "Industry Founder — initial notes",
+        positiveNotes:
+          "Shows consistent engagement; brings sector contacts; open to evidence-led pace.",
+        redFlagPrompts:
+          "Explore: Are expectations about registration timelines realistic? Is there pressure to over-promise member savings before assumptions are verified?",
+        evidenceNotes: "Based on kick-off conversation notes (fictional seed).",
+        status: "DRAFT",
       },
-      create: {
-        key: "materials_discount_pct",
-        scenario,
-        label: "Expected materials discount",
-        value: discount,
-        unit: "%",
-        confidence: scenario === "BASE" ? "ESTIMATE" : "ASSUMPTION",
-      },
-    });
-    await prisma.financialAssumption.upsert({
-      where: { key_scenario: { key: "membership_fee", scenario } },
-      update: {
-        label: "Annual membership fee",
-        value: "300",
-        unit: "EUR",
-        confidence: "VERIFIED",
-      },
-      create: {
-        key: "membership_fee",
-        scenario,
-        label: "Annual membership fee",
-        value: "300",
-        unit: "EUR",
-        confidence: "VERIFIED",
-      },
-    });
-    await prisma.financialAssumption.upsert({
-      where: { key_scenario: { key: "startup_cost", scenario } },
-      update: {
-        label: "Startup cost",
-        value: scenario === "UPSIDE" ? "8000" : "12000",
-        unit: "EUR",
-        confidence: "ESTIMATE",
-      },
-      create: {
-        key: "startup_cost",
-        scenario,
-        label: "Startup cost",
-        value: scenario === "UPSIDE" ? "8000" : "12000",
-        unit: "EUR",
-        confidence: "ESTIMATE",
-      },
+    ],
+    skipDuplicates: true,
+  });
+
+  const supplier = await prisma.supplier.upsert({
+    where: { id: "seed-supplier-med" },
+    update: {},
+    create: {
+      id: "seed-supplier-med",
+      name: "MedBulk Supplies",
+      category: "Dry goods",
+      contact: "sales@example.invalid",
+      notes: "Fictional supplier",
+    },
+  });
+  const offerCount = await prisma.supplierOffer.count({ where: { supplierId: supplier.id } });
+  if (offerCount === 0) {
+    await prisma.supplierOffer.createMany({
+      data: [
+        {
+          supplierId: supplier.id,
+          description: "Collective dry goods basket (estimate)",
+          unitPrice: 1000,
+          currency: "EUR",
+          assumptionConfidence: "ESTIMATE",
+        },
+        {
+          supplierId: supplier.id,
+          description: "Member-specific pilot price",
+          unitPrice: 920,
+          currency: "EUR",
+          confidentialMemberScope: founder.id,
+          assumptionConfidence: "ASSUMPTION",
+        },
+      ],
     });
   }
 
-  if ((await prisma.memberValueStatement.count()) === 0) {
-    const mv = calculateMemberValue({
-      annualSpend: 80000,
-      coopDiscountPct: 7,
-      membershipFee: 300,
-      hoursSaved: 48,
-      hourlyValue: 30,
+  for (const row of [
+    {
+      key: "discount_pct",
+      label: "Expected coop discount",
+      value: "8",
+      unit: "%",
+      confidence: "ESTIMATE" as const,
+      scenario: "A",
+    },
+    {
+      key: "discount_pct",
+      label: "Expected coop discount",
+      value: "12",
+      unit: "%",
+      confidence: "ASSUMPTION" as const,
+      scenario: "B",
+    },
+    {
+      key: "membership_fee",
+      label: "Annual membership fee",
+      value: "250",
+      unit: "EUR",
+      confidence: "VERIFIED" as const,
+      scenario: "A",
+    },
+  ]) {
+    await prisma.financialAssumption.upsert({
+      where: { key_scenario: { key: row.key, scenario: row.scenario } },
+      update: row,
+      create: row,
     });
+  }
+
+  const mv = calculateMemberValue({
+    annualSpend: 50000,
+    coopDiscountPct: 8,
+    membershipFee: 250,
+    hoursSaved: 40,
+    hourlyValue: 25,
+  });
+  const mvCount = await prisma.memberValueStatement.count();
+  if (mvCount === 0) {
     await prisma.memberValueStatement.create({
       data: {
-        memberLabel: "Illustrative electrical member (fictional)",
+        memberLabel: "Illustrative member (fictional)",
         inputsJson: {
-          annualSpend: 80000,
-          coopDiscountPct: 7,
-          membershipFee: 300,
-          hoursSaved: 48,
-          hourlyValue: 30,
+          annualSpend: 50000,
+          coopDiscountPct: 8,
+          membershipFee: 250,
+          hoursSaved: 40,
+          hourlyValue: 25,
         },
         resultJson: mv,
         createdById: nesli.id,
@@ -444,33 +528,58 @@ async function main() {
     });
   }
 
-  if ((await prisma.adviceItem.count()) === 0) {
-    await prisma.adviceItem.create({
-      data: {
+  await prisma.adviceItem.createMany({
+    data: [
+      {
         category: "Legal",
-        title: "Confirm cooperative registration pathway (Malta)",
-        body: "Seek formal legal advice before committing to a registration timeline. No outcome promised.",
-        status: "AWAITING_RESPONSE",
+        title: "Confirm cooperative registration pathway",
+        body: "Seek Maltese legal advice before committing to a registration timeline.",
+        status: "OPEN",
         adviserId: adviser.id,
+      },
+    ],
+    skipDuplicates: true,
+  });
+
+  const meeting = await prisma.meeting.create({
+    data: {
+      title: "Week 1 kick-off",
+      scheduledAt: new Date(),
+      location: "Online",
+      notes: "Seed meeting",
+      attendees: {
+        create: [{ userId: nesli.id }, { userId: founder.id }],
+      },
+    },
+  });
+
+  const decisionCount = await prisma.decision.count();
+  if (decisionCount === 0) {
+    await prisma.decision.create({
+      data: {
+        meetingId: meeting.id,
+        title: "Adopt evidence→gate workflow",
+        body: "Programme progression requires evidence and gate criteria (or audited override).",
+        decidedById: nesli.id,
       },
     });
   }
 
-  for (const req of REGISTRATION_CHECKLIST) {
-    await prisma.registrationRequirement.upsert({
-      where: { code: req.code },
-      update: {
-        title: req.title,
-        description: req.description,
-        priority: req.priority,
-        responsibleUserId: nesli.id,
+  await prisma.risk.createMany({
+    data: [
+      {
+        title: "Over-promising member savings",
+        probability: 3,
+        impact: 4,
+        rating: 12,
+        mitigation: "Label all assumptions; avoid promotional certainty.",
+        ownerId: nesli.id,
+        trigger: "External copy draft without review",
+        status: "MITIGATING",
       },
-      create: {
-        ...req,
-        responsibleUserId: nesli.id,
-      },
-    });
-  }
+    ],
+    skipDuplicates: true,
+  });
 
   await prisma.template.upsert({
     where: { code: "SEC31_INTRO" },
@@ -493,60 +602,50 @@ async function main() {
     },
   });
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const plan = await prisma.dailyPlan.upsert({
-    where: { userId_date: { userId: nesli.id, date: today } },
-    update: {
-      plannedMinutes: 240,
-      notes: "4h structure: 20 settle / 100 deep / 60 outreach / 40 admin / 20 close",
+  for (const req of [
+    {
+      code: "STATUTES_DRAFT",
+      title: "Draft statutes",
+      description: "Working draft of cooperative statutes",
+      priority: "MANDATORY" as const,
     },
-    create: {
-      userId: nesli.id,
-      date: today,
-      plannedMinutes: 240,
-      notes: "4h structure: 20 settle / 100 deep / 60 outreach / 40 admin / 20 close",
+    {
+      code: "FOUNDER_IDS",
+      title: "Founder identification documents",
+      description: "Evidence of identity for founding members",
+      priority: "MANDATORY" as const,
     },
-  });
-  if ((await prisma.dailyPlanItem.count({ where: { planId: plan.id } })) === 0) {
-    await prisma.dailyPlanItem.createMany({
-      data: [
-        { planId: plan.id, title: "Settle & priorities", minutes: 20, order: 0, blockKey: "settle" },
-        { planId: plan.id, title: "Deep work — charter / evidence", minutes: 100, order: 1, blockKey: "deep" },
-        { planId: plan.id, title: "Outreach / CRM follow-ups", minutes: 60, order: 2, blockKey: "outreach" },
-        { planId: plan.id, title: "Admin & documents", minutes: 40, order: 3, blockKey: "admin" },
-        { planId: plan.id, title: "Close-out & next-day notes", minutes: 20, order: 4, blockKey: "close" },
-      ],
+    {
+      code: "BANK_INTRO",
+      title: "Bank introduction letter",
+      description: "Optional early banking introduction",
+      priority: "OPTIONAL" as const,
+    },
+  ]) {
+    await prisma.registrationRequirement.upsert({
+      where: { code: req.code },
+      update: {
+        title: req.title,
+        description: req.description,
+        priority: req.priority,
+        completed: false,
+        evidenceDocumentId: null,
+      },
+      create: req,
     });
   }
 
-  if (
-    (await prisma.founderActionRequest.count({
-      where: { assigneeId: founder.id, deletedAt: null },
-    })) === 0
-  ) {
-    await prisma.founderActionRequest.createMany({
-      data: [
-        {
-          title: "Introduce Nesli to Alex Demo-Electric",
-          detail: "Warm introduction only — no commitments.",
-          kind: "INTRODUCTION",
-          assigneeId: founder.id,
-          createdById: nesli.id,
-        },
-        {
-          title: "Review founder assessment draft for Casey",
-          detail: "Careful language — prompts not verdicts.",
-          kind: "REVIEW_CANDIDATE",
-          assigneeId: founder.id,
-          createdById: nesli.id,
-        },
-      ],
-    });
+  console.log("Seed complete.");
+  console.log(
+    "Logins: nesli@cooplaunch.mt / founder@cooplaunch.mt / admin@cooplaunch.mt",
+  );
+  if (process.env.NODE_ENV === "production") {
+    console.log(
+      "Passwords were set from SEED_PASSWORD_* env (not printed). Store them only in the operator credentials file.",
+    );
+  } else {
+    console.log("Dev password: ChangeMeNow! (override with SEED_PASSWORD_*).");
   }
-
-  console.log("Seed complete (construction demo + operational 12-week programme).");
-  console.log("Demo users only when NODE_ENV≠production. Password: ChangeMeNow!");
 }
 
 main()
