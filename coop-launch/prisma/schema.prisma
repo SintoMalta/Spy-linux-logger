@@ -19,7 +19,6 @@ enum Role {
 enum TaskStatus {
   NOT_STARTED
   IN_PROGRESS
-  WAITING_EXTERNAL
   BLOCKED
   ACHIEVED
   CANCELLED
@@ -34,31 +33,11 @@ enum GateCriterionType {
   MANUAL_APPROVAL
 }
 
-enum GateMetricKey {
-  NONE
-  INTERVIEW_COUNT
-  PROBLEM_TAG_COUNT
-  FOUNDER_CANDIDATE_COUNT
-  SUPPLIER_DISCUSSION_COUNT
-  SUPPLIER_OFFER_COUNT
-  ADVICE_OPEN_COUNT
-  DOCUMENT_LINKED_COUNT
-  REGISTRATION_MANDATORY_COMPLETE
-  WEEK9_DECISION
-  REGISTRATION_SUBMITTED
-  ORGANISATION_COUNT
-}
-
 enum OrgPersonStatus {
-  NEW
+  ACTIVE
   CONTACTED
-  INTERVIEW_SCHEDULED
-  INTERVIEWED
-  POTENTIAL_MEMBER
-  POTENTIAL_FOUNDER
-  FOUNDING_WORKING_GROUP
-  DECLINED
-  FUTURE_MEMBER
+  QUALIFIED
+  NURTURE
   DO_NOT_PURSUE
   ARCHIVED
 }
@@ -67,12 +46,6 @@ enum AssumptionConfidence {
   VERIFIED
   ESTIMATE
   ASSUMPTION
-}
-
-enum FinanceScenario {
-  CONSERVATIVE
-  BASE
-  UPSIDE
 }
 
 enum FounderActionType {
@@ -89,23 +62,12 @@ enum FounderActionStatus {
   CANCELLED
 }
 
-enum FounderActionKind {
-  INTRODUCTION
-  CONTACT
-  ANSWER
-  REVIEW_CANDIDATE
-  REVIEW_FINDING
-  ATTEND
-  APPROVE
-  OTHER
-}
-
 enum AdviceStatus {
   OPEN
-  AWAITING_RESPONSE
-  ANSWERED
-  FOLLOW_UP_REQUIRED
-  CLOSED
+  IN_PROGRESS
+  ACCEPTED
+  DECLINED
+  DEFERRED
 }
 
 enum RiskStatus {
@@ -134,35 +96,18 @@ enum StageStatus {
   IN_PROGRESS
   COMPLETED
   BLOCKED
-  REDESIGN
-  NO_GO
-  CONDITIONAL_GO
-  GO
-  REGISTRATION_READY
-  REGISTRATION_SUBMITTED
-}
-
-enum InterviewStatus {
-  DRAFT
-  COMPLETED
-}
-
-enum DecisionStatus {
-  DRAFT
-  FINAL
 }
 
 model User {
-  id                 String    @id @default(cuid())
-  email              String    @unique
-  name               String
-  passwordHash       String
-  role               Role
-  active             Boolean   @default(true)
-  mustChangePassword Boolean   @default(false)
-  deletedAt          DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         Role
+  active       Boolean   @default(true)
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   sessions              Session[]
   totp                  TotpCredential?
@@ -186,8 +131,6 @@ model User {
   weeklyReports         WeeklyReport[]
   auditLogs             AuditLog[]
   meetingAttendees      MeetingAttendee[]
-  registrationOwned     RegistrationRequirement[] @relation("RegResponsible")
-  supplierDiscussions   SupplierDiscussion[]
 }
 
 model Session {
@@ -227,7 +170,6 @@ model Stage {
   description String
   order       Int
   status      StageStatus @default(NOT_STARTED)
-  outcomeNote String      @default("")
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   deletedAt   DateTime?
@@ -237,26 +179,19 @@ model Stage {
 }
 
 model Task {
-  id                   String     @id @default(cuid())
-  stageId              String
-  stage                Stage      @relation(fields: [stageId], references: [id])
-  title                String
-  description          String     @default("")
-  status               TaskStatus @default(NOT_STARTED)
-  ownerUserId          String?
-  owner                User?      @relation("TaskOwner", fields: [ownerUserId], references: [id])
-  dueAt                DateTime?
-  achievedAt           DateTime?
-  waitingOnPersonId    String?
-  waitingOnOrgId       String?
-  waitingOnPerson      Person?    @relation("TaskWaitingPerson", fields: [waitingOnPersonId], references: [id])
-  waitingOnOrg         Organisation? @relation("TaskWaitingOrg", fields: [waitingOnOrgId], references: [id])
-  dateRequested        DateTime?
-  followUpDate         DateTime?
-  priority             Int        @default(0)
-  createdAt            DateTime   @default(now())
-  updatedAt            DateTime   @updatedAt
-  deletedAt            DateTime?
+  id          String     @id @default(cuid())
+  stageId     String
+  stage       Stage      @relation(fields: [stageId], references: [id])
+  title       String
+  description String     @default("")
+  status      TaskStatus @default(NOT_STARTED)
+  ownerUserId String?
+  owner       User?      @relation("TaskOwner", fields: [ownerUserId], references: [id])
+  dueAt       DateTime?
+  achievedAt  DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
 
   checklist   TaskChecklistItem[]
   dodCriteria DefinitionOfDoneCriterion[]
@@ -264,15 +199,6 @@ model Task {
   dependedBy  TaskDependency[]            @relation("PrerequisiteTask")
   planItems   DailyPlanItem[]
   timeEntries TimeEntry[]
-  notes       TaskNote[]
-}
-
-model TaskNote {
-  id        String   @id @default(cuid())
-  taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  body      String
-  createdAt DateTime @default(now())
 }
 
 model TaskChecklistItem {
@@ -287,16 +213,16 @@ model TaskChecklistItem {
 }
 
 model DefinitionOfDoneCriterion {
-  id             String   @id @default(cuid())
-  taskId         String
-  task           Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  label          String
-  satisfied      Boolean  @default(false)
-  order          Int      @default(0)
-  overridden     Boolean  @default(false)
+  id         String   @id @default(cuid())
+  taskId     String
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label      String
+  satisfied  Boolean  @default(false)
+  order      Int      @default(0)
+  overridden Boolean  @default(false)
   overrideReason String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model TaskDependency {
@@ -310,16 +236,14 @@ model TaskDependency {
 }
 
 model DailyPlan {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   userId         String
-  user           User      @relation(fields: [userId], references: [id])
-  date           DateTime  @db.Date
-  notes          String    @default("")
-  plannedMinutes Int       @default(240)
-  endOfDayNotes  String    @default("")
-  proposedJson   Json?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  user           User     @relation(fields: [userId], references: [id])
+  date           DateTime @db.Date
+  notes          String   @default("")
+  plannedMinutes Int      @default(240)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   items DailyPlanItem[]
 
@@ -327,16 +251,15 @@ model DailyPlan {
 }
 
 model DailyPlanItem {
-  id       String    @id @default(cuid())
-  planId   String
-  plan     DailyPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
-  taskId   String?
-  task     Task?     @relation(fields: [taskId], references: [id])
-  title    String
-  minutes  Int       @default(30)
-  done     Boolean   @default(false)
-  order    Int       @default(0)
-  blockKey String?
+  id      String  @id @default(cuid())
+  planId  String
+  plan    DailyPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  taskId  String?
+  task    Task?   @relation(fields: [taskId], references: [id])
+  title   String
+  minutes Int     @default(30)
+  done    Boolean @default(false)
+  order   Int     @default(0)
 }
 
 model TimeEntry {
@@ -372,8 +295,6 @@ model GateCriterion {
   type         GateCriterionType
   label        String
   targetValue  Float?
-  metricKey    GateMetricKey     @default(NONE)
-  code         String?
   satisfied    Boolean           @default(false)
   evidenceNote String?
   order        Int               @default(0)
@@ -403,50 +324,37 @@ model GateOverride {
 }
 
 model Organisation {
-  id               String          @id @default(cuid())
-  name             String
-  trade            String          @default("")
-  sector           String          @default("construction")
-  status           OrgPersonStatus @default(NEW)
-  notes            String          @default("")
-  nextAction       String          @default("")
-  followUpDate     DateTime?
-  potentialFounder Boolean         @default(false)
-  locality         String          @default("")
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  deletedAt        DateTime?
+  id        String          @id @default(cuid())
+  name      String
+  sector    String          @default("")
+  status    OrgPersonStatus @default(ACTIVE)
+  notes     String          @default("")
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  deletedAt DateTime?
 
-  people         Person[]
-  communications Communication[]
-  interviews     Interview[]
-  assessments    FounderAssessment[]
-  waitingTasks   Task[]              @relation("TaskWaitingOrg")
+  people          Person[]
+  communications  Communication[]
+  interviews      Interview[]
 }
 
 model Person {
-  id               String          @id @default(cuid())
-  organisationId   String?
-  organisation     Organisation?   @relation(fields: [organisationId], references: [id])
-  name             String
-  email            String?
-  phone            String?
-  roleTitle        String?
-  trade            String          @default("")
-  status           OrgPersonStatus @default(NEW)
-  notes            String          @default("")
-  nextAction       String          @default("")
-  followUpDate     DateTime?
-  potentialFounder Boolean         @default(false)
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  deletedAt        DateTime?
+  id             String          @id @default(cuid())
+  organisationId String?
+  organisation   Organisation?   @relation(fields: [organisationId], references: [id])
+  name           String
+  email          String?
+  phone          String?
+  roleTitle      String?
+  status         OrgPersonStatus @default(ACTIVE)
+  notes          String          @default("")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  deletedAt      DateTime?
 
   communications   Communication[]
   interviews       Interview[]
   meetingAttendees MeetingAttendee[]
-  assessments      FounderAssessment[]
-  waitingTasks     Task[]              @relation("TaskWaitingPerson")
 }
 
 model Communication {
@@ -469,7 +377,7 @@ model InterviewTemplate {
   description String   @default("")
   createdAt   DateTime @default(now())
 
-  questions  InterviewTemplateQuestion[]
+  questions InterviewTemplateQuestion[]
   interviews Interview[]
 }
 
@@ -480,41 +388,38 @@ model InterviewTemplateQuestion {
   prompt     String
   kind       QuestionKind @default(TEXT)
   order      Int          @default(0)
-  topic      String       @default("")
 
   answers InterviewAnswer[]
 }
 
 model Interview {
-  id             String          @id @default(cuid())
+  id             String         @id @default(cuid())
   templateId     String
   template       InterviewTemplate @relation(fields: [templateId], references: [id])
   organisationId String?
-  organisation   Organisation?   @relation(fields: [organisationId], references: [id])
+  organisation   Organisation?  @relation(fields: [organisationId], references: [id])
   personId       String?
-  person         Person?         @relation(fields: [personId], references: [id])
+  person         Person?        @relation(fields: [personId], references: [id])
   interviewerId  String
-  interviewer    User            @relation("Interviewer", fields: [interviewerId], references: [id])
-  conductedAt    DateTime        @default(now())
-  notes          String          @default("")
-  status         InterviewStatus @default(DRAFT)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  interviewer    User           @relation("Interviewer", fields: [interviewerId], references: [id])
+  conductedAt    DateTime       @default(now())
+  notes          String         @default("")
+  createdAt      DateTime       @default(now())
   deletedAt      DateTime?
 
   answers InterviewAnswer[]
 }
 
 model InterviewAnswer {
-  id           String                    @id @default(cuid())
-  interviewId  String
-  interview    Interview                 @relation(fields: [interviewId], references: [id], onDelete: Cascade)
-  questionId   String
-  question     InterviewTemplateQuestion @relation(fields: [questionId], references: [id])
-  valueText    String?
-  valueNumber  Float?
-  valueBool    Boolean?
-  confidential Boolean                   @default(false)
+  id          String                   @id @default(cuid())
+  interviewId String
+  interview   Interview                @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  questionId  String
+  question    InterviewTemplateQuestion @relation(fields: [questionId], references: [id])
+  valueText   String?
+  valueNumber Float?
+  valueBool   Boolean?
+  confidential Boolean                 @default(false)
 
   tags InterviewAnswerTag[]
 }
@@ -537,25 +442,19 @@ model InterviewAnswerTag {
 }
 
 model FounderAssessment {
-  id               String        @id @default(cuid())
-  subjectUserId    String?
-  subject          User?         @relation("AssessmentSubject", fields: [subjectUserId], references: [id])
-  organisationId   String?
-  organisation     Organisation? @relation(fields: [organisationId], references: [id])
-  personId         String?
-  person           Person?       @relation(fields: [personId], references: [id])
-  authorId         String
-  author           User          @relation("AssessmentAuthor", fields: [authorId], references: [id])
-  title            String
-  positiveNotes    String        @default("")
-  redFlagPrompts   String        @default("")
-  evidenceNotes    String        @default("")
-  status           String        @default("DRAFT")
-  founderReviewed  Boolean       @default(false)
-  founderReviewNote String       @default("")
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  deletedAt        DateTime?
+  id             String   @id @default(cuid())
+  subjectUserId  String?
+  subject        User?    @relation("AssessmentSubject", fields: [subjectUserId], references: [id])
+  authorId       String
+  author         User     @relation("AssessmentAuthor", fields: [authorId], references: [id])
+  title          String
+  positiveNotes  String   @default("")
+  redFlagPrompts String   @default("")
+  evidenceNotes  String   @default("")
+  status         String   @default("DRAFT")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
 }
 
 model Supplier {
@@ -568,38 +467,22 @@ model Supplier {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  offers       SupplierOffer[]
-  discussions  SupplierDiscussion[]
-}
-
-model SupplierDiscussion {
-  id         String   @id @default(cuid())
-  supplierId String
-  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
-  summary    String
-  occurredAt DateTime @default(now())
-  createdAt  DateTime @default(now())
+  offers SupplierOffer[]
 }
 
 model SupplierOffer {
-  id                      String               @id @default(cuid())
-  supplierId              String
-  supplier                Supplier             @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  description             String
-  unitPrice               Decimal?             @db.Decimal(12, 2)
-  currency                String               @default("EUR")
-  discountPct             Float?
-  rebateNotes             String               @default("")
-  terms                   String               @default("")
-  validUntil              DateTime?
+  id                     String               @id @default(cuid())
+  supplierId             String
+  supplier               Supplier             @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  description            String
+  unitPrice              Decimal?             @db.Decimal(12, 2)
+  currency               String               @default("EUR")
   confidentialMemberScope String?
-  notes                   String               @default("")
-  assumptionConfidence    AssumptionConfidence @default(ESTIMATE)
-  createdAt               DateTime             @default(now())
-  updatedAt               DateTime             @updatedAt
-  deletedAt               DateTime?
+  notes                  String               @default("")
+  assumptionConfidence   AssumptionConfidence @default(ESTIMATE)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  deletedAt              DateTime?
 }
 
 model FinancialAssumption {
@@ -609,7 +492,7 @@ model FinancialAssumption {
   value      String
   unit       String?
   confidence AssumptionConfidence
-  scenario   FinanceScenario      @default(BASE)
+  scenario   String?
   notes      String               @default("")
   createdAt  DateTime             @default(now())
   updatedAt  DateTime             @updatedAt
@@ -619,30 +502,27 @@ model FinancialAssumption {
 }
 
 model MemberValueStatement {
-  id           String   @id @default(cuid())
-  memberLabel  String
-  inputsJson   Json
-  resultJson   Json
-  calculatedAt DateTime @default(now())
-  createdById  String
-  createdBy    User     @relation(fields: [createdById], references: [id])
-  createdAt    DateTime @default(now())
+  id            String   @id @default(cuid())
+  memberLabel   String
+  inputsJson    Json
+  resultJson    Json
+  calculatedAt  DateTime @default(now())
+  createdById   String
+  createdBy     User     @relation(fields: [createdById], references: [id])
+  createdAt     DateTime @default(now())
 }
 
 model AdviceItem {
-  id            String       @id @default(cuid())
-  category      String
-  title         String
-  body          String
-  status        AdviceStatus @default(OPEN)
-  adviserId     String?
-  adviser       User?        @relation(fields: [adviserId], references: [id])
-  askedAt       DateTime     @default(now())
-  responseNotes String       @default("")
-  followUpDate  DateTime?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  deletedAt     DateTime?
+  id         String       @id @default(cuid())
+  category   String
+  title      String
+  body       String
+  status     AdviceStatus @default(OPEN)
+  adviserId  String?
+  adviser    User?        @relation(fields: [adviserId], references: [id])
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  deletedAt  DateTime?
 }
 
 model Meeting {
@@ -651,7 +531,6 @@ model Meeting {
   scheduledAt DateTime
   location    String?
   notes       String    @default("")
-  actions     String    @default("")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
@@ -661,26 +540,25 @@ model Meeting {
 }
 
 model MeetingAttendee {
-  id        String  @id @default(cuid())
+  id       String  @id @default(cuid())
   meetingId String
-  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  userId    String?
-  user      User?   @relation(fields: [userId], references: [id])
-  personId  String?
-  person    Person? @relation(fields: [personId], references: [id])
+  meeting  Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  userId   String?
+  user     User?   @relation(fields: [userId], references: [id])
+  personId String?
+  person   Person? @relation(fields: [personId], references: [id])
 }
 
 model Decision {
-  id          String         @id @default(cuid())
+  id          String    @id @default(cuid())
   meetingId   String?
-  meeting     Meeting?       @relation(fields: [meetingId], references: [id])
+  meeting     Meeting?  @relation(fields: [meetingId], references: [id])
   title       String
   body        String
-  status      DecisionStatus @default(DRAFT)
-  decidedAt   DateTime       @default(now())
+  decidedAt   DateTime  @default(now())
   decidedById String
-  decidedBy   User           @relation(fields: [decidedById], references: [id])
-  createdAt   DateTime       @default(now())
+  decidedBy   User      @relation(fields: [decidedById], references: [id])
+  createdAt   DateTime  @default(now())
 }
 
 model Risk {
@@ -737,11 +615,6 @@ model RegistrationRequirement {
   evidenceDocumentId String?
   evidenceDocument   Document?            @relation(fields: [evidenceDocumentId], references: [id])
   completed          Boolean              @default(false)
-  notes              String               @default("")
-  responsibleUserId  String?
-  responsible        User?                @relation("RegResponsible", fields: [responsibleUserId], references: [id])
-  dueDate            DateTime?
-  completedAt        DateTime?
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
 }
@@ -750,7 +623,6 @@ model FounderActionRequest {
   id           String              @id @default(cuid())
   title        String
   detail       String              @default("")
-  kind         FounderActionKind   @default(OTHER)
   assigneeId   String
   assignee     User                @relation("ActionAssignee", fields: [assigneeId], references: [id])
   createdById  String
@@ -758,7 +630,6 @@ model FounderActionRequest {
   status       FounderActionStatus @default(OPEN)
   lastAction   FounderActionType?
   comment      String?
-  followUpDate DateTime?
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
   deletedAt    DateTime?
@@ -775,22 +646,13 @@ model Notification {
 }
 
 model WeeklyReport {
-  id           String    @id @default(cuid())
-  weekNumber   Int
-  body         String
+  id          String    @id @default(cuid())
+  weekNumber  Int
+  body        String
   authoredById String
-  authoredBy   User      @relation(fields: [authoredById], references: [id])
-  status       String    @default("DRAFT")
-  publishedAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-}
-
-model ProgrammeFlag {
-  id        String   @id @default(cuid())
-  key       String   @unique
-  value     String
-  updatedAt DateTime @updatedAt
+  authoredBy  User      @relation(fields: [authoredById], references: [id])
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
 }
 
 model AuditLog {

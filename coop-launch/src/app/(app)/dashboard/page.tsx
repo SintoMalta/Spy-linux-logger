@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { getRegistrationReadiness } from "@/server/registration/readiness";
-import { SimpleForm } from "@/components/simple-form";
+import { PlanItemToggle } from "@/components/plan-item-toggle";
+import { FounderActionCreate } from "@/components/founder-action-create";
 
 export default async function CoordinatorDashboard() {
   const user = await getCurrentUser();
@@ -15,7 +16,7 @@ export default async function CoordinatorDashboard() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [stages, openActions, waitingTasks, plan, readiness, recentAudits, founder] =
+  const [stages, openActions, waitingTasks, plan, readiness, recentAudits, founders] =
     await Promise.all([
       prisma.stage.findMany({
         where: { deletedAt: null },
@@ -28,7 +29,7 @@ export default async function CoordinatorDashboard() {
         take: 8,
       }),
       prisma.task.findMany({
-        where: { status: { in: ["BLOCKED", "IN_PROGRESS", "WAITING_EXTERNAL"] }, deletedAt: null },
+        where: { status: { in: ["BLOCKED", "IN_PROGRESS"] }, deletedAt: null },
         include: { stage: true },
         take: 10,
         orderBy: { updatedAt: "desc" },
@@ -39,7 +40,15 @@ export default async function CoordinatorDashboard() {
       }),
       getRegistrationReadiness(),
       prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 6 }),
-      prisma.user.findFirst({ where: { role: "INDUSTRY_FOUNDER", deletedAt: null } }),
+      prisma.user.findMany({
+        where: {
+          active: true,
+          deletedAt: null,
+          role: { in: ["INDUSTRY_FOUNDER", "FOUNDING_MEMBER"] },
+        },
+        select: { id: true, name: true, email: true },
+        orderBy: { name: "asc" },
+      }),
     ]);
 
   const current = stages.find((s) => s.status === "IN_PROGRESS") ?? stages[0];
@@ -79,11 +88,17 @@ export default async function CoordinatorDashboard() {
           {plan ? (
             <ul className="space-y-2">
               {plan.items.map((item) => (
-                <li key={item.id} className="flex justify-between gap-3 text-sm">
+                <li
+                  key={item.id}
+                  className="flex flex-wrap items-center justify-between gap-3 text-sm"
+                >
                   <span className={item.done ? "line-through opacity-60" : ""}>
                     {item.title}
                   </span>
-                  <span className="text-[var(--muted)]">{item.minutes}m</span>
+                  <span className="flex items-center gap-2">
+                    <span className="text-[var(--muted)]">{item.minutes}m</span>
+                    <PlanItemToggle itemId={item.id} done={item.done} />
+                  </span>
                 </li>
               ))}
             </ul>
@@ -93,30 +108,11 @@ export default async function CoordinatorDashboard() {
         </Panel>
 
         <Panel title="Needs from founder">
-          <SimpleForm
-            action="/api/founder-actions"
-            submitLabel="Create founder action"
-            fields={[
-              { name: "title", label: "Title", required: true },
-              { name: "detail", label: "Detail" },
-              {
-                name: "kind",
-                label: "Kind",
-                placeholder: "INTRODUCTION|CONTACT|ANSWER|REVIEW_CANDIDATE|REVIEW_FINDING|ATTEND|APPROVE|OTHER",
-              },
-              {
-                name: "assigneeId",
-                label: "Assignee user id",
-                required: true,
-                placeholder: founder?.id,
-              },
-            ]}
-          />
-          <ul className="mt-3 space-y-3">
+          <ul className="space-y-3">
             {openActions.map((a) => (
               <li key={a.id} className="text-sm">
                 <div className="font-medium">{a.title}</div>
-                <div className="text-[var(--muted)]">{a.assignee.name} · {a.kind}</div>
+                <div className="text-[var(--muted)]">{a.assignee.name}</div>
               </li>
             ))}
             {openActions.length === 0 ? (
@@ -155,6 +151,8 @@ export default async function CoordinatorDashboard() {
           )}
         </Panel>
       </section>
+
+      <FounderActionCreate assignees={founders} />
 
       <Panel title="Recent audit">
         <ul className="space-y-1 text-sm text-[var(--muted)]">

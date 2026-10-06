@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { AuthError, requireSession } from "@/server/auth/session";
-import { respondToFounderAction } from "@/server/programme/founder-actions";
-import { DomainError } from "@/server/programme/task-service";
+import {
+  DomainError,
+  setDodSatisfied,
+} from "@/server/programme/task-service";
 
-const schema = z.object({
-  action: z.enum(["DONE", "COMMENT", "CALL_NESLI", "DEFER"]),
-  comment: z.string().optional(),
-});
+const schema = z.object({ satisfied: z.boolean() });
 
 export async function POST(
   request: Request,
@@ -17,8 +16,8 @@ export async function POST(
     const user = await requireSession();
     const { id } = await context.params;
     const body = schema.parse(await request.json());
-    const updated = await respondToFounderAction(user, id, body);
-    return NextResponse.json({ ok: true, item: updated });
+    const criterion = await setDodSatisfied(user, id, body.satisfied);
+    return NextResponse.json({ ok: true, criterion });
   } catch (err) {
     if (err instanceof AuthError) {
       return NextResponse.json(
@@ -32,6 +31,7 @@ export async function POST(
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
+    console.error(err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

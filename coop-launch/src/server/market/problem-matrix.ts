@@ -15,11 +15,6 @@ export async function getProblemMatrix(
   const tags = await prisma.problemTag.findMany({
     include: {
       answers: {
-        where: {
-          answer: {
-            interview: { status: "COMPLETED", deletedAt: null },
-          },
-        },
         include: {
           answer: {
             include: {

@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import { TaskAchieveControls } from "@/components/task-achieve-controls";
 import { GateControls } from "@/components/gate-controls";
+import { DodToggle } from "@/components/dod-toggle";
+import { GateCriterionToggle } from "@/components/gate-criterion-toggle";
 
 export default async function ProgrammePage() {
   const user = await getCurrentUser();
@@ -60,11 +62,17 @@ export default async function ProgrammePage() {
                   <div className="font-medium">{task.title}</div>
                   <Badge>{task.status}</Badge>
                 </div>
-                <ul className="mt-2 space-y-1 text-sm text-[var(--muted)]">
+                <ul className="mt-2 space-y-2 text-sm text-[var(--muted)]">
                   {task.dodCriteria.map((d) => (
-                    <li key={d.id}>
-                      DoD: {d.label} —{" "}
-                      {d.satisfied || d.overridden ? "met" : "open"}
+                    <li key={d.id} className="space-y-1">
+                      <div>
+                        DoD: {d.label} —{" "}
+                        {d.satisfied || d.overridden ? "met" : "open"}
+                      </div>
+                      <DodToggle
+                        criterionId={d.id}
+                        satisfied={d.satisfied || d.overridden}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -83,10 +91,17 @@ export default async function ProgrammePage() {
           {stage.gate ? (
             <div className="mt-4 rounded-lg bg-[var(--surface-2)] p-3">
               <h3 className="font-medium">Gate: {stage.gate.title}</h3>
-              <ul className="mt-2 space-y-1 text-sm">
+              <ul className="mt-2 space-y-3 text-sm">
                 {stage.gate.criteria.map((c) => (
                   <li key={c.id}>
-                    {c.label} [{c.type}] — {c.satisfied ? "satisfied" : "open"}
+                    <div>
+                      {c.label} [{c.type}] —{" "}
+                      {c.satisfied ? "satisfied" : "open"}
+                    </div>
+                    <GateCriterionToggle
+                      criterionId={c.id}
+                      satisfied={c.satisfied}
+                    />
                   </li>
                 ))}
               </ul>

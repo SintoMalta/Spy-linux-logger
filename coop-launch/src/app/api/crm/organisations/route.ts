@@ -1,24 +1,31 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { AuthError, requireSession } from "@/server/auth/session";
-import { respondToFounderAction } from "@/server/programme/founder-actions";
 import { DomainError } from "@/server/programme/task-service";
+import { createOrganisation } from "@/server/crm/contacts";
 
 const schema = z.object({
-  action: z.enum(["DONE", "COMMENT", "CALL_NESLI", "DEFER"]),
-  comment: z.string().optional(),
+  name: z.string().min(1),
+  sector: z.string().optional(),
+  notes: z.string().optional(),
+  status: z
+    .enum([
+      "ACTIVE",
+      "CONTACTED",
+      "QUALIFIED",
+      "NURTURE",
+      "DO_NOT_PURSUE",
+      "ARCHIVED",
+    ])
+    .optional(),
 });
 
-export async function POST(
-  request: Request,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function POST(request: Request) {
   try {
     const user = await requireSession();
-    const { id } = await context.params;
     const body = schema.parse(await request.json());
-    const updated = await respondToFounderAction(user, id, body);
-    return NextResponse.json({ ok: true, item: updated });
+    const org = await createOrganisation(user, body);
+    return NextResponse.json({ ok: true, organisation: org });
   } catch (err) {
     if (err instanceof AuthError) {
       return NextResponse.json(
@@ -32,6 +39,7 @@ export async function POST(
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
+    console.error(err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

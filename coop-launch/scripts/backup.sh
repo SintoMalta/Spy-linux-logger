@@ -13,7 +13,6 @@ fi
 BACKUP_DIR="${BACKUP_DIR:-$ROOT/backups}"
 KEY="${BACKUP_ENCRYPTION_KEY:-}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-BUCKET="${S3_BACKUP_BUCKET:-coop-launch-backups}"
 mkdir -p "$BACKUP_DIR"
 
 if [[ -z "${DATABASE_URL:-}" ]]; then
@@ -21,27 +20,18 @@ if [[ -z "${DATABASE_URL:-}" ]]; then
   exit 1
 fi
 
+# pg_dump does not accept Prisma's ?schema= query param
 PG_URL="${DATABASE_URL%%\?*}"
+
 OUT="$BACKUP_DIR/coop_launch_$STAMP.sql"
 echo "Dumping database to $OUT"
-if ! pg_dump "$PG_URL" --no-owner --format=plain > "$OUT"; then
-  echo "pg_dump failed" >&2
-  exit 2
+pg_dump "$PG_URL" --no-owner --format=plain > "$OUT"
+
+if [[ -n "$KEY" ]]; then
+  ENCRYPTED="$OUT.enc"
+  openssl enc -aes-256-cbc -pbkdf2 -salt -in "$OUT" -out "$ENCRYPTED" -pass pass:"$KEY"
+  rm -f "$OUT"
+  echo "Encrypted backup written to $ENCRYPTED"
+else
+  echo "WARNING: BACKUP_ENCRYPTION_KEY unset; left plaintext dump at $OUT" >&2
 fi
-
-if [[ -z "$KEY" ]]; then
-  echo "BACKUP_ENCRYPTION_KEY is required for encrypted backups" >&2
-  exit 3
-fi
-
-ENCRYPTED="$OUT.enc"
-openssl enc -aes-256-cbc -pbkdf2 -salt -in "$OUT" -out "$ENCRYPTED" -pass pass:"$KEY"
-rm -f "$OUT"
-echo "Encrypted backup: $ENCRYPTED"
-
-# Upload to backup bucket (FS driver or S3)
-export S3_DRIVER="${S3_DRIVER:-fs}"
-export LOCAL_S3_ROOT="${LOCAL_S3_ROOT:-$ROOT/.data/s3}"
-export S3_BACKUP_BUCKET="$BUCKET"
-pnpm exec tsx "$ROOT/scripts/upload-backup.ts" "$ENCRYPTED" "$BUCKET" "db/coop_launch_$STAMP.sql.enc"
-echo "Backup uploaded to bucket=$BUCKET key=db/coop_launch_$STAMP.sql.enc"

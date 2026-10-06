@@ -3,49 +3,65 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { apiMutate } from "@/components/simple-form";
 
-export function RegistrationControls({ requirementId }: { requirementId: string }) {
+export function RegistrationControls({
+  itemId,
+  completed,
+  documents,
+  evidenceDocumentId,
+}: {
+  itemId: string;
+  completed: boolean;
+  evidenceDocumentId: string | null;
+  documents: { id: string; filename: string }[];
+}) {
   const router = useRouter();
-  const [notes, setNotes] = useState("");
-  const [evidenceDocumentId, setEvidenceDocumentId] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [docId, setDocId] = useState(evidenceDocumentId ?? "");
+  const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  async function save(completed: boolean) {
-    setError(null);
+  async function save(nextCompleted: boolean) {
+    setBusy(true);
+    setMsg(null);
     try {
-      await apiMutate(`/api/registration/${requirementId}`, {
-        method: "PATCH",
+      const res = await fetch(`/api/registration/${itemId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          completed,
-          notes: notes || undefined,
-          evidenceDocumentId: evidenceDocumentId || undefined,
+          completed: nextCompleted,
+          evidenceDocumentId: docId || null,
         }),
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsg(data.error ?? "Update failed");
+        return;
+      }
+      setMsg("Saved");
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setBusy(false);
     }
   }
 
   return (
-    <div className="space-y-2">
-      <Input placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
-      <Input
-        placeholder="Evidence document id (after upload, paste id if needed)"
-        value={evidenceDocumentId}
-        onChange={(e) => setEvidenceDocumentId(e.target.value)}
-      />
-      <div className="flex gap-2">
-        <Button type="button" onClick={() => save(true)}>
-          Mark complete
-        </Button>
-        <Button type="button" variant="secondary" onClick={() => save(false)}>
-          Mark open
-        </Button>
-      </div>
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+    <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+      <select
+        className="flex h-10 rounded-md border border-[var(--border)] bg-transparent px-3 text-sm"
+        value={docId}
+        onChange={(e) => setDocId(e.target.value)}
+      >
+        <option value="">No evidence document</option>
+        {documents.map((d) => (
+          <option key={d.id} value={d.id}>
+            {d.filename}
+          </option>
+        ))}
+      </select>
+      <Button type="button" disabled={busy} onClick={() => save(!completed)}>
+        {completed ? "Mark open" : "Mark complete"}
+      </Button>
+      {msg ? <span className="text-sm text-[var(--muted)]">{msg}</span> : null}
     </div>
   );
 }

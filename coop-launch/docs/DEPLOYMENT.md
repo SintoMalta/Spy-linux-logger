@@ -39,30 +39,6 @@ Files:
 
 **Do not deploy to Hetzner until** the Deployment Readiness Report items are provided and the user explicitly approves.
 
-## 2b. Live pilot production bootstrap (no demo passwords)
-
-```bash
-# On server after migrate:
-ALLOW_PROD_PROGRAMME_SEED=true pnpm db:seed:prod-programme
-# Interactive strong passwords — never commit/log:
-ALLOW_BOOTSTRAP=true pnpm bootstrap:admin   # Nesli COORDINATOR, Founder, Admin (run per user)
-```
-
-Demo seed (`pnpm db:seed`) **refuses** when `NODE_ENV=production` unless `ALLOW_DEMO_SEED=true`.
-Production data should be: users + 12-week programme/gates/templates/registration checklist only.
-
-Set `S3_DRIVER=s3` with Hetzner Object Storage credentials. Set `TRUST_PROXY=true` behind Caddy.
-Set `APP_URL=https://your.domain` and optional `ALLOWED_ORIGINS`.
-
-## 2c. Backup (encrypted, off app volume)
-
-```bash
-pnpm backup                 # encrypt + upload to S3_BACKUP_BUCKET
-pnpm backup:restore-demo    # download/decrypt/restore isolated DB + integrity check
-```
-
-Cron example (document only): `0 2 * * * cd /opt/coop-launch && ./scripts/backup.sh`
-
 ## 3. Environment variables
 
 See `.env.example`. Never commit real `.env` or dumps.

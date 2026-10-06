@@ -4,14 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { apiMutate } from "@/components/simple-form";
 
 const ACTIONS = ["DONE", "COMMENT", "CALL_NESLI", "DEFER"] as const;
 
 export function FounderActionButtons({ actionId }: { actionId: string }) {
   const router = useRouter();
   const [comment, setComment] = useState("");
-  const [followUpDate, setFollowUpDate] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,18 +17,18 @@ export function FounderActionButtons({ actionId }: { actionId: string }) {
     setBusy(action);
     setError(null);
     try {
-      await apiMutate(`/api/founder-actions/${actionId}`, {
+      const res = await fetch(`/api/founder-actions/${actionId}`, {
         method: "POST",
-        body: JSON.stringify({
-          action,
-          comment: comment || undefined,
-          followUpDate: action === "DEFER" ? followUpDate : undefined,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, comment: comment || undefined }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Failed");
+        return;
+      }
       setComment("");
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed");
     } finally {
       setBusy(null);
     }
@@ -38,12 +36,10 @@ export function FounderActionButtons({ actionId }: { actionId: string }) {
 
   return (
     <div className="mt-4 space-y-3">
-      <Input placeholder="Optional comment" value={comment} onChange={(e) => setComment(e.target.value)} />
       <Input
-        type="date"
-        value={followUpDate}
-        onChange={(e) => setFollowUpDate(e.target.value)}
-        aria-label="Follow-up date for defer"
+        placeholder="Optional comment"
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
       />
       <div className="flex flex-wrap gap-2">
         {ACTIONS.map((a) => (

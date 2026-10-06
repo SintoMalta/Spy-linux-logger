@@ -1,75 +1,74 @@
-import { prisma } from "@/lib/prisma";
-import { withSessionJson, mapError } from "@/server/http";
-import { canManageProgramme, assertDocumentVisibility } from "@/server/auth/rbac";
+import { createHash } from "crypto";
+import { NextResponse } from "next/server";
 import { AuthError, requireSession } from "@/server/auth/session";
-import { assertValidOrigin } from "@/server/security/origin";
-import { assertAllowedUpload, putObject, sha256Buffer } from "@/server/storage/s3";
+import { canManageProgramme } from "@/server/auth/rbac";
+import { prisma } from "@/lib/prisma";
 import { writeAudit } from "@/server/audit";
-import { randomUUID } from "crypto";
-
-export async function GET() {
-  return withSessionJson(async (user) => {
-    const docs = await prisma.document.findMany({
-      where: { deletedAt: null },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-    });
-    return docs.filter((d) => {
-      try {
-        assertDocumentVisibility(user, d.visibility);
-        return true;
-      } catch {
-        return false;
-      }
-    });
-  });
-}
+import { uploadObject } from "@/lib/s3";
+import { DomainError } from "@/server/programme/task-service";
 
 export async function POST(request: Request) {
   try {
-    assertValidOrigin(request);
     const user = await requireSession();
-    if (!canManageProgramme(user)) throw new AuthError("FORBIDDEN", "Insufficient permissions");
-
+    if (!canManageProgramme(user)) {
+      throw new AuthError("FORBIDDEN", "Only coordinators can upload documents");
+    }
     const form = await request.formData();
     const file = form.get("file");
-    if (!(file instanceof File)) throw new Error("file required");
-    const linkedType = String(form.get("linkedType") ?? "") || null;
-    const linkedId = String(form.get("linkedId") ?? "") || null;
-    const visibility = String(form.get("visibility") ?? "COORDINATOR");
-    const buf = Buffer.from(await file.arrayBuffer());
-    assertAllowedUpload(file.type || "application/octet-stream", buf.length);
-    const sha = sha256Buffer(buf);
-    const key = `uploads/${new Date().toISOString().slice(0, 10)}/${randomUUID()}-${file.name}`;
-    await putObject({ key, body: buf, contentType: file.type || "application/octet-stream" });
+    if (!(file instanceof File)) {
+      throw new DomainError("VALIDATION", "file is required");
+    }
+    if (file.size <= 0) throw new DomainError("VALIDATION", "Empty file");
+    if (file.size > 20 * 1024 * 1024) {
+      throw new DomainError("VALIDATION", "File must be under 20MB");
+    }
+
+    const bytes = Buffer.from(await file.arrayBuffer());
+    const sha256 = createHash("sha256").update(bytes).digest("hex");
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const key = `uploads/${user.id}/${Date.now()}-${safeName}`;
+
+    await uploadObject({
+      key,
+      body: bytes,
+      contentType: file.type || "application/octet-stream",
+    });
+
     const doc = await prisma.document.create({
       data: {
         key,
         filename: file.name,
         mimeType: file.type || "application/octet-stream",
-        size: buf.length,
-        sha256: sha,
-        visibility,
-        linkedType,
-        linkedId,
+        size: file.size,
+        sha256,
+        visibility: "COORDINATOR",
         uploadedById: user.id,
       },
     });
-    if (linkedType === "RegistrationRequirement" && linkedId) {
-      await prisma.registrationRequirement.update({
-        where: { id: linkedId },
-        data: { evidenceDocumentId: doc.id },
-      });
-    }
+
     await writeAudit({
       actorId: user.id,
-      action: "DOCUMENT_UPLOAD",
+      action: "DOCUMENT_UPLOADED",
       entityType: "Document",
       entityId: doc.id,
-      after: { filename: doc.filename, sha256: sha, linkedType, linkedId },
+      after: { filename: doc.filename, size: doc.size },
     });
-    return Response.json({ ok: true, data: doc });
+
+    return NextResponse.json({ ok: true, document: doc });
   } catch (err) {
-    return mapError(err);
+    if (err instanceof AuthError) {
+      return NextResponse.json(
+        { error: err.message },
+        { status: err.code === "UNAUTHENTICATED" ? 401 : 403 },
+      );
+    }
+    if (err instanceof DomainError) {
+      return NextResponse.json({ error: err.message, code: err.code }, { status: 400 });
+    }
+    console.error(err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Server error" },
+      { status: 500 },
+    );
   }
 }
