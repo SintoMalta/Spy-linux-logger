@@ -113,6 +113,27 @@ export async function setWeek9Decision(
   return { decision, recorded: true as const };
 }
 
+export async function autoEvaluateGate(gateId: string) {
+  return getGateEvaluation(gateId);
+}
+
+export async function markRegistrationSubmitted(user: SessionUser, verified: boolean) {
+  if (!canManageProgramme(user)) {
+    throw new AuthError("FORBIDDEN", "Insufficient permissions");
+  }
+  if (!verified) {
+    throw new DomainError("VALIDATION", "Submission must be verified");
+  }
+  await writeAudit({
+    actorId: user.id,
+    action: "REGISTRATION_SUBMITTED",
+    entityType: "Programme",
+    entityId: "registration",
+    after: { verified: true },
+  });
+  return { verified: true as const, recorded: true as const };
+}
+
 export async function advanceStageIfGatePassed(
   user: SessionUser,
   gateId: string,

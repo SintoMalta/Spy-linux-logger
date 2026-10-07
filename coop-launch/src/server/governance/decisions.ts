@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { AuthError, type SessionUser } from "@/server/auth/session";
-import { canCreateDecision } from "@/server/auth/rbac";
+import { canCreateDecision, canManageProgramme } from "@/server/auth/rbac";
 import { writeAudit } from "@/server/audit";
 import { DomainError } from "@/server/programme/task-service";
 
@@ -24,6 +24,23 @@ export async function createDecision(
     action: "DECISION_CREATED",
     entityType: "Decision",
     entityId: decision.id,
+    after: { title: decision.title },
+  });
+  return decision;
+}
+
+/** Decisions are immutable once created; this records an explicit finalise acknowledgement. */
+export async function finaliseDecision(user: SessionUser, id: string) {
+  if (!canManageProgramme(user)) {
+    throw new AuthError("FORBIDDEN", "Insufficient permissions");
+  }
+  const decision = await prisma.decision.findUnique({ where: { id } });
+  if (!decision) throw new DomainError("NOT_FOUND", "Decision not found");
+  await writeAudit({
+    actorId: user.id,
+    action: "DECISION_FINALISED",
+    entityType: "Decision",
+    entityId: id,
     after: { title: decision.title },
   });
   return decision;

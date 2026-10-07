@@ -4,11 +4,11 @@ import { AuthError } from "@/server/auth/session";
 import { canManageProgramme } from "@/server/auth/rbac";
 
 const BLOCKS = [
-  { key: "settle", title: "Settle & priorities", minutes: 20 },
-  { key: "deep", title: "Deep work", minutes: 100 },
-  { key: "outreach", title: "Outreach / CRM", minutes: 60 },
-  { key: "admin", title: "Admin & documents", minutes: 40 },
-  { key: "close", title: "Close-out", minutes: 20 },
+  { title: "Settle & priorities", minutes: 20 },
+  { title: "Deep work", minutes: 100 },
+  { title: "Outreach / Contacts", minutes: 60 },
+  { title: "Admin & documents", minutes: 40 },
+  { title: "Close-out", minutes: 20 },
 ] as const;
 
 export async function ensureTodayPlan(user: SessionUser, date = new Date()) {
@@ -32,7 +32,6 @@ export async function ensureTodayPlan(user: SessionUser, date = new Date()) {
             title: b.title,
             minutes: b.minutes,
             order,
-            blockKey: b.key,
           })),
         },
       },
@@ -72,9 +71,9 @@ export async function proposeNextDayPriorities(user: SessionUser) {
   const proposals = [
     stage ? `Continue Week ${stage.weekNumber}: ${stage.title}` : "Review programme status",
     ...waiting.map((t) => `Follow waiting: ${t.title}`),
-    ...followUps.map((p) => `CRM follow-up: ${p.name}`),
+    ...followUps.map((p) => `Contacts follow-up: ${p.name}`),
     ...openActions.map((a) => `Founder ask open: ${a.title}`),
-    ...(stage?.gate?.criteria.filter((c) => !c.satisfied).map((c) => `Gate open: ${c.label}`) ??
+    ...(stage?.gate?.criteria.filter((c) => !c.satisfied).map((c) => `Week checklist open: ${c.label}`) ??
       []),
   ].slice(0, 8);
 
@@ -89,12 +88,10 @@ export async function saveEndOfDay(
   if (!canManageProgramme(user)) {
     throw new AuthError("FORBIDDEN", "Insufficient permissions");
   }
-  const proposals = await proposeNextDayPriorities(user);
   return prisma.dailyPlan.update({
     where: { id: planId },
     data: {
-      endOfDayNotes,
-      proposedJson: proposals,
+      notes: endOfDayNotes,
     },
   });
 }

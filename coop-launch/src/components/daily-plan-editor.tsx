@@ -8,8 +8,8 @@ import { apiMutate } from "@/components/simple-form";
 
 type Plan = {
   id: string;
-  endOfDayNotes: string;
-  items: { id: string; title: string; minutes: number; done: boolean; blockKey: string | null }[];
+  notes: string;
+  items: { id: string; title: string; minutes: number; done: boolean }[];
 };
 
 export function DailyPlanEditor({
@@ -20,7 +20,7 @@ export function DailyPlanEditor({
   proposals: string[];
 }) {
   const router = useRouter();
-  const [notes, setNotes] = useState(plan.endOfDayNotes ?? "");
+  const [notes, setNotes] = useState(plan.notes ?? "");
   const [items, setItems] = useState(plan.items);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +44,10 @@ export function DailyPlanEditor({
     <div className="space-y-4">
       <ul className="space-y-3">
         {items.map((item, idx) => (
-          <li key={item.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)]/80 p-3">
+          <li
+            key={item.id}
+            className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)]/80 p-3"
+          >
             <input
               type="checkbox"
               checked={item.done}
@@ -62,7 +65,7 @@ export function DailyPlanEditor({
                 )
               }
             />
-            <span className="text-sm text-[var(--muted)]">{item.minutes}m · {item.blockKey}</span>
+            <span className="text-sm text-[var(--muted)]">{item.minutes} min</span>
           </li>
         ))}
       </ul>

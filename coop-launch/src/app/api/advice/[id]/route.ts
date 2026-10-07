@@ -8,7 +8,7 @@ const schema = z.object({
   category: z.string().optional(),
   title: z.string().optional(),
   body: z.string().optional(),
-  status: z.enum(["OPEN", "AWAITING_RESPONSE", "ANSWERED", "FOLLOW_UP_REQUIRED", "CLOSED"]).optional(),
+  status: z.enum(["OPEN", "IN_PROGRESS", "ACCEPTED", "DECLINED", "DEFERRED"]).optional(),
   responseNotes: z.string().optional(),
   followUpDate: z.string().optional().nullable(),
   softDelete: z.boolean().optional(),
