@@ -3,40 +3,57 @@ import type { SessionUser } from "@/server/auth/session";
 import { canAccessFounderDashboard, canManageProgramme } from "@/server/auth/rbac";
 import { plainRole } from "@/lib/plain-labels";
 
-const links = [
-  { href: "/dashboard", label: "Home", show: (u: SessionUser) => canManageProgramme(u) },
-  {
-    href: "/founder",
-    label: "Founder tasks",
-    show: (u: SessionUser) => canAccessFounderDashboard(u),
-  },
-  {
-    href: "/programme",
-    label: "12-week plan",
-    show: (u: SessionUser) => canManageProgramme(u),
-  },
-  { href: "/crm", label: "Contacts", show: (u: SessionUser) => canManageProgramme(u) },
-  {
-    href: "/interviews",
-    label: "Interviews",
-    show: (u: SessionUser) => canManageProgramme(u),
-  },
-  {
-    href: "/economic",
-    label: "Money & value",
-    show: (u: SessionUser) => canManageProgramme(u),
-  },
-  {
-    href: "/governance",
-    label: "Decisions & docs",
-    show: (u: SessionUser) => canManageProgramme(u),
-  },
-  {
-    href: "/registration",
-    label: "Register co-op",
-    show: (u: SessionUser) => canManageProgramme(u),
-  },
-];
+function navLinks(user: SessionUser) {
+  const links: { href: string; label: string; show: boolean }[] = [
+    {
+      href: "/dashboard",
+      label: "Home",
+      show: canManageProgramme(user),
+    },
+    {
+      href: "/daily-plan",
+      label: "Your tasks",
+      show: canManageProgramme(user),
+    },
+    {
+      href: "/founder",
+      // Founder sees their own asks; Nesli sees the same page as "asks she sent"
+      label: canManageProgramme(user) ? "Founder asks" : "Your tasks",
+      show: canAccessFounderDashboard(user),
+    },
+    {
+      href: "/programme",
+      label: "12-week plan",
+      show: canManageProgramme(user),
+    },
+    {
+      href: "/crm",
+      label: "Contacts",
+      show: canManageProgramme(user),
+    },
+    {
+      href: "/interviews",
+      label: "Interviews",
+      show: canManageProgramme(user),
+    },
+    {
+      href: "/economic",
+      label: "Money & value",
+      show: canManageProgramme(user),
+    },
+    {
+      href: "/governance",
+      label: "Decisions & docs",
+      show: canManageProgramme(user),
+    },
+    {
+      href: "/registration",
+      label: "Register co-op",
+      show: canManageProgramme(user),
+    },
+  ];
+  return links.filter((l) => l.show);
+}
 
 export function AppNav({ user }: { user: SessionUser }) {
   return (
@@ -54,17 +71,15 @@ export function AppNav({ user }: { user: SessionUser }) {
           </span>
         </div>
         <nav className="flex flex-wrap gap-2">
-          {links
-            .filter((l) => l.show(user))
-            .map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="rounded-md px-3 py-2 text-sm font-medium text-[var(--ink)] hover:bg-[var(--surface-2)]"
-              >
-                {l.label}
-              </Link>
-            ))}
+          {navLinks(user).map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="rounded-md px-3 py-2 text-sm font-medium text-[var(--ink)] hover:bg-[var(--surface-2)]"
+            >
+              {l.label}
+            </Link>
+          ))}
           <form action="/api/auth/logout" method="post">
             <button
               type="submit"

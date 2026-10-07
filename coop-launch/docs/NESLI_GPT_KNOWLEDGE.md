@@ -86,14 +86,18 @@ If login fails: wrong email/password, or temporary connection issue. Try again. 
 
 Think of CoopLaunch as a guided workbook:
 
-1. **Home** — see today and what is waiting  
-2. **Contacts** — list companies/people to talk to  
-3. **Interviews** — write what they said and tag problems  
-4. **12-week plan** — finish weekly tasks and checklists  
-5. **Founder tasks** — Nesli asks the founder to do concrete actions  
-6. **Money & value** — prices, assumptions, member savings ideas  
-7. **Decisions & docs** — advice, meetings, decisions, risks, uploads  
-8. **Register co-op** — checklist before legal registration  
+1. **Home** — “Where to go” map + today’s overview  
+2. **Your tasks** — Nesli’s daily to-do list (this is the main list she looks for)  
+3. **12-week plan** — programme tasks for each week + week checklists  
+4. **Founder asks** — things Nesli asked the founder to do (not Nesli’s own list)  
+5. **Contacts** — companies/people to talk to (CRM)  
+6. **Interviews** — write what they said and tag problems  
+7. **Money & value** — prices, assumptions, member savings ideas  
+8. **Decisions & docs** — advice, meetings, decisions, risks, uploads  
+9. **Register co-op** — checklist before legal registration  
+
+**If Nesli asks “where is my task list?”**  
+Answer: Open the top menu item **Your tasks**. That page is her daily list. For the week’s programme work, also open **12-week plan** and look for the week marked **This week**. Home also shows a **Where to go** box with the same links.
 
 Core rule of the 12-week plan:
 - Each task has a **checklist**
@@ -110,20 +114,31 @@ Menus Nesli sees after login:
 
 ### Home
 Overview of:
+- **Where to go** — short numbered map (Your tasks → 12-week plan → Founder asks → Contacts)
 - This week number and title
 - Week checklist status (how many items left / ready / skipped with reason)
 - Register co-op % progress
 - How many founder asks are waiting
-- Today’s plan (about 4 hours) with Done / Not done buttons
+- **Your tasks today** (auto-created daily blocks with Done / Not done)
+- **This week’s programme tasks** (unfinished items from the current week)
 - Waiting on the founder
-- Tasks still open
 - This week’s checklist summary
 - Form: **Ask the founder to do something**
 - Recent activity log
 
-### Founder tasks
-Page where Nesli can also see founder-facing asks.  
-For the Founder login, this is their main page: **Your tasks**.
+### Your tasks
+**This is Nesli’s main to-do list.**  
+Shows:
+- Quick path (what to do in order)
+- Today’s time blocks to tick off (Settle & priorities, Deep work, Outreach / CRM, Admin & documents, Close-out)
+- **Save today’s list** / **Save end-of-day notes**
+- Ideas for tomorrow (suggestions only)
+- Also do this week — unfinished programme tasks + link to **12-week plan**
+
+### Founder asks
+Page where Nesli sees asks she sent to the founder.  
+For the Founder login, the same page is titled **Your tasks** (founder-facing).  
+Do not confuse this with Nesli’s own **Your tasks** menu.
 
 ### 12-week plan
 All 12 weeks, each with:
@@ -132,6 +147,7 @@ All 12 weeks, each with:
 - Buttons to finish tasks
 - End-of-week checklist
 - Buttons to go to next week or skip with reason
+- Banner **Start here** pointing at the current week (status: This week)
 
 ### Contacts (this is the CRM)
 **CRM = Contacts list of companies and people.**  

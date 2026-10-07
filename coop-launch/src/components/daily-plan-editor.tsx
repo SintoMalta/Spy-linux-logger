@@ -67,30 +67,31 @@ export function DailyPlanEditor({
         ))}
       </ul>
       <label className="block text-sm">
-        End-of-day notes
+        Notes for end of day
         <textarea
           className="mt-1 w-full rounded-md border px-3 py-2"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
+          placeholder="What got done? What should wait until tomorrow?"
         />
       </label>
       <div className="flex flex-wrap gap-2">
         <Button type="button" onClick={() => save(false)}>
-          Save plan
+          Save today’s list
         </Button>
         <Button type="button" variant="secondary" onClick={() => save(true)}>
-          Capture end-of-day + proposals
+          Save end-of-day notes
         </Button>
       </div>
       <section className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
-        <h2 className="font-medium">Proposed next-day priorities (confirm manually)</h2>
+        <h2 className="font-medium">Ideas for tomorrow (suggestions only)</h2>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
           {proposals.map((p) => (
             <li key={p}>{p}</li>
           ))}
         </ul>
         <p className="mt-2 text-xs text-[var(--muted)]">
-          These are suggestions only — the app does not auto-write tomorrow&apos;s plan.
+          These are suggestions. Nothing is written into tomorrow automatically.
         </p>
       </section>
       {error ? <p className="text-sm text-red-700">{error}</p> : null}

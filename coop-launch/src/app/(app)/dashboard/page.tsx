@@ -7,6 +7,7 @@ import Link from "next/link";
 import { getRegistrationReadiness } from "@/server/registration/readiness";
 import { PlanItemToggle } from "@/components/plan-item-toggle";
 import { FounderActionCreate } from "@/components/founder-action-create";
+import { ensureTodayPlan } from "@/server/programme/daily-plan";
 import { plainTaskStatus } from "@/lib/plain-labels";
 
 export default async function CoordinatorDashboard() {
@@ -14,31 +15,25 @@ export default async function CoordinatorDashboard() {
   if (!user) redirect("/");
   if (!canManageProgramme(user)) redirect("/founder");
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const [stages, openActions, waitingTasks, plan, readiness, recentAudits, founders] =
+  const [stages, openActions, plan, readiness, recentAudits, founders] =
     await Promise.all([
       prisma.stage.findMany({
         where: { deletedAt: null },
         orderBy: { weekNumber: "asc" },
-        include: { gate: { include: { criteria: true, overrides: true } } },
+        include: {
+          gate: { include: { criteria: true, overrides: true } },
+          tasks: {
+            where: { deletedAt: null },
+            orderBy: { title: "asc" },
+          },
+        },
       }),
       prisma.founderActionRequest.findMany({
         where: { status: "OPEN", deletedAt: null },
         include: { assignee: true },
         take: 8,
       }),
-      prisma.task.findMany({
-        where: { status: { in: ["BLOCKED", "IN_PROGRESS"] }, deletedAt: null },
-        include: { stage: true },
-        take: 10,
-        orderBy: { updatedAt: "desc" },
-      }),
-      prisma.dailyPlan.findFirst({
-        where: { userId: user.id, date: today },
-        include: { items: { orderBy: { order: "asc" } } },
-      }),
+      ensureTodayPlan(user),
       getRegistrationReadiness(),
       prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 6 }),
       prisma.user.findMany({
@@ -56,6 +51,9 @@ export default async function CoordinatorDashboard() {
   const gate = current?.gate;
   const unmet = gate?.criteria.filter((c) => !c.satisfied).length ?? 0;
   const overridden = (gate?.overrides.length ?? 0) > 0;
+  const weekTasks =
+    current?.tasks.filter((t) => t.status !== "ACHIEVED" && t.status !== "CANCELLED") ??
+    [];
 
   return (
     <div className="space-y-8">
@@ -64,10 +62,42 @@ export default async function CoordinatorDashboard() {
           Home
         </h1>
         <p className="mt-1 text-[var(--muted)]">
-          Your day at a glance: today&apos;s work, what the founder still needs to do, and this
-          week&apos;s checklist.
+          Start here. Your task list is under <strong>Your tasks</strong>. Week-by-week work is
+          under <strong>12-week plan</strong>.
         </p>
       </header>
+
+      <section className="rounded-xl border border-[var(--brand)]/30 bg-[var(--surface)] p-5">
+        <h2 className="font-[family-name:var(--font-display)] text-xl text-[var(--brand-dark)]">
+          Where to go
+        </h2>
+        <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm">
+          <li>
+            <Link href="/daily-plan" className="font-medium underline">
+              Your tasks
+            </Link>{" "}
+            — today&apos;s checklist (tick items as you finish them)
+          </li>
+          <li>
+            <Link href="/programme" className="font-medium underline">
+              12-week plan
+            </Link>{" "}
+            — this week&apos;s programme tasks and week checklist
+          </li>
+          <li>
+            <Link href="/founder" className="font-medium underline">
+              Founder asks
+            </Link>{" "}
+            — things you asked the founder to do
+          </li>
+          <li>
+            <Link href="/crm" className="font-medium underline">
+              Contacts
+            </Link>{" "}
+            — companies and people (CRM)
+          </li>
+        </ol>
+      </section>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
@@ -89,27 +119,61 @@ export default async function CoordinatorDashboard() {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
-        <Panel title="Today’s plan (about 4 hours)">
-          {plan ? (
-            <ul className="space-y-2">
-              {plan.items.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex flex-wrap items-center justify-between gap-3 text-sm"
-                >
-                  <span className={item.done ? "line-through opacity-60" : ""}>
-                    {item.title}
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className="text-[var(--muted)]">{item.minutes} min</span>
-                    <PlanItemToggle itemId={item.id} done={item.done} />
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-[var(--muted)]">No plan set for today yet.</p>
-          )}
+        <Panel title="Your tasks today">
+          <ul className="space-y-2">
+            {plan.items.map((item) => (
+              <li
+                key={item.id}
+                className="flex flex-wrap items-center justify-between gap-3 text-sm"
+              >
+                <span className={item.done ? "line-through opacity-60" : ""}>
+                  {item.title}
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="text-[var(--muted)]">{item.minutes} min</span>
+                  <PlanItemToggle itemId={item.id} done={item.done} />
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-sm">
+            <Link href="/daily-plan" className="underline">
+              Open full Your tasks page
+            </Link>
+          </p>
+        </Panel>
+
+        <Panel
+          title={
+            current
+              ? `This week’s programme tasks (Week ${current.weekNumber})`
+              : "This week’s programme tasks"
+          }
+        >
+          <ul className="space-y-2">
+            {weekTasks.map((t) => (
+              <li key={t.id} className="flex items-center justify-between gap-2 text-sm">
+                <Link href="/programme" className="hover:underline">
+                  {t.title}
+                </Link>
+                <Badge>{plainTaskStatus(t.status)}</Badge>
+              </li>
+            ))}
+            {weekTasks.length === 0 ? (
+              <li className="text-sm text-[var(--muted)]">
+                All programme tasks for this week are finished. Check the week checklist in{" "}
+                <Link href="/programme" className="underline">
+                  12-week plan
+                </Link>
+                .
+              </li>
+            ) : null}
+          </ul>
+          <p className="mt-3 text-sm">
+            <Link href="/programme" className="underline">
+              Go to 12-week plan to mark them done
+            </Link>
+          </p>
         </Panel>
 
         <Panel title="Waiting on the founder">
@@ -124,22 +188,11 @@ export default async function CoordinatorDashboard() {
               <li className="text-sm text-[var(--muted)]">Nothing waiting right now.</li>
             ) : null}
           </ul>
-        </Panel>
-
-        <Panel title="Tasks still open">
-          <ul className="space-y-2">
-            {waitingTasks.map((t) => (
-              <li key={t.id} className="flex items-center justify-between gap-2 text-sm">
-                <Link href="/programme" className="hover:underline">
-                  {t.title}
-                </Link>
-                <Badge>{plainTaskStatus(t.status)}</Badge>
-              </li>
-            ))}
-            {waitingTasks.length === 0 ? (
-              <li className="text-sm text-[var(--muted)]">No open tasks.</li>
-            ) : null}
-          </ul>
+          <p className="mt-3 text-sm">
+            <Link href="/founder" className="underline">
+              Open Founder asks
+            </Link>
+          </p>
         </Panel>
 
         <Panel title="This week’s checklist">
@@ -169,9 +222,7 @@ export default async function CoordinatorDashboard() {
               {a.createdAt.toISOString().slice(0, 16)} · {a.action.replaceAll("_", " ")}
             </li>
           ))}
-          {recentAudits.length === 0 ? (
-            <li>No activity yet.</li>
-          ) : null}
+          {recentAudits.length === 0 ? <li>No activity yet.</li> : null}
         </ul>
       </Panel>
     </div>

@@ -32,6 +32,11 @@ export default async function ProgrammePage() {
     },
   });
 
+  const currentWeek =
+    stages.find((s) => s.status === "IN_PROGRESS") ??
+    stages.find((s) => s.status === "NOT_STARTED") ??
+    stages[0];
+
   return (
     <div className="space-y-8">
       <header>
@@ -42,15 +47,27 @@ export default async function ProgrammePage() {
           Work week by week. For each task: finish the checklist, then mark the task finished.
           When the week checklist is complete, move to the next week.
         </p>
+        {currentWeek ? (
+          <p className="mt-3 rounded-lg border border-[var(--brand)]/30 bg-[var(--surface)] px-3 py-2 text-sm">
+            <strong>Start here:</strong> Week {currentWeek.weekNumber} — {currentWeek.title}. Scroll
+            to that week below (status: {plainStageStatus(currentWeek.status)}).
+          </p>
+        ) : null}
       </header>
 
       {stages.map((stage) => (
         <section
           key={stage.id}
-          className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/80 p-4"
+          id={stage.status === "IN_PROGRESS" ? "this-week" : undefined}
+          className={`rounded-xl border p-4 ${
+            stage.status === "IN_PROGRESS"
+              ? "border-[var(--brand)] bg-[var(--surface)]"
+              : "border-[var(--border)] bg-[var(--surface)]/80"
+          }`}
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-[family-name:var(--font-display)] text-xl">
+              {stage.status === "IN_PROGRESS" ? "This week — " : ""}
               Week {stage.weekNumber}: {stage.title}
             </h2>
             <Badge>{plainStageStatus(stage.status)}</Badge>

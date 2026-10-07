@@ -53,7 +53,7 @@ export async function proposeNextDayPriorities(user: SessionUser) {
       include: { gate: { include: { criteria: true } }, tasks: { where: { deletedAt: null } } },
     }),
     prisma.task.findMany({
-      where: { status: "WAITING_EXTERNAL", deletedAt: null },
+      where: { status: { in: ["BLOCKED", "IN_PROGRESS"] }, deletedAt: null },
       take: 5,
     }),
     prisma.person.findMany({
