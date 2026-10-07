@@ -5,13 +5,14 @@ import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import { TEMPLATE_BODIES } from "@/server/governance/decisions";
 import { DocumentUpload } from "@/components/document-upload";
+import { AdviceCreateForm } from "@/components/advice-create-form";
 
 export default async function GovernancePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/");
   if (!canManageProgramme(user)) redirect("/founder");
 
-  const [advice, meetings, decisions, risks, templates, documents] =
+  const [advice, meetings, decisions, risks, templates, documents, advisers] =
     await Promise.all([
       prisma.adviceItem.findMany({ where: { deletedAt: null }, orderBy: { updatedAt: "desc" } }),
       prisma.meeting.findMany({ where: { deletedAt: null }, orderBy: { scheduledAt: "desc" }, take: 10 }),
@@ -19,6 +20,11 @@ export default async function GovernancePage() {
       prisma.risk.findMany({ where: { deletedAt: null }, orderBy: { rating: "desc" } }),
       prisma.template.findMany({ orderBy: { code: "asc" } }),
       prisma.document.findMany({ where: { deletedAt: null }, take: 10, orderBy: { createdAt: "desc" } }),
+      prisma.user.findMany({
+        where: { active: true, deletedAt: null, role: "ADVISER" },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      }),
     ]);
 
   return (
@@ -31,6 +37,8 @@ export default async function GovernancePage() {
           Advice, meetings, decisions, risks, uploaded files, and message templates.
         </p>
       </header>
+
+      <AdviceCreateForm advisers={advisers} />
 
       <Grid title="Advice">
         {advice.map((a) => (

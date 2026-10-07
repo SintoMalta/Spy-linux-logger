@@ -7,6 +7,7 @@ import { DailyPlanEditor } from "@/components/daily-plan-editor";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import { plainTaskStatus } from "@/lib/plain-labels";
+import { DutyWorkspaceMap } from "@/components/duty-workspace-map";
 
 export default async function DailyPlanPage() {
   const user = await getCurrentUser();
@@ -76,6 +77,8 @@ export default async function DailyPlanPage() {
       </section>
 
       <DailyPlanEditor plan={plan} proposals={proposals.proposals} />
+
+      <DutyWorkspaceMap />
 
       <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/80 p-4">
         <h2 className="font-[family-name:var(--font-display)] text-lg">

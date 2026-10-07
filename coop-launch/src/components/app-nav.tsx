@@ -16,6 +16,16 @@ function navLinks(user: SessionUser) {
       show: canManageProgramme(user),
     },
     {
+      href: "/my-notes",
+      label: "Your notes",
+      show: canManageProgramme(user),
+    },
+    {
+      href: "/app-issues",
+      label: "App issues",
+      show: canManageProgramme(user),
+    },
+    {
       href: "/founder",
       // Founder sees their own asks; Nesli sees the same page as "asks she sent"
       label: canManageProgramme(user) ? "Founder asks" : "Your tasks",

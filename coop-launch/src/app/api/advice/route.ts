@@ -8,10 +8,8 @@ const schema = z.object({
   category: z.string().min(1),
   title: z.string().min(1),
   body: z.string().min(1),
-  status: z.enum(["OPEN", "AWAITING_RESPONSE", "ANSWERED", "FOLLOW_UP_REQUIRED", "CLOSED"]).optional(),
+  status: z.enum(["OPEN", "IN_PROGRESS", "ACCEPTED", "DECLINED", "DEFERRED"]).optional(),
   adviserId: z.string().optional().nullable(),
-  responseNotes: z.string().optional(),
-  followUpDate: z.string().optional().nullable(),
 });
 
 export async function GET() {
@@ -34,8 +32,6 @@ export async function POST(request: Request) {
         body: body.body,
         status: body.status ?? "OPEN",
         adviserId: body.adviserId ?? null,
-        responseNotes: body.responseNotes ?? "",
-        followUpDate: body.followUpDate ? new Date(body.followUpDate) : null,
       },
     });
   });

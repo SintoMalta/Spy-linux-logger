@@ -9,6 +9,7 @@ import { PlanItemToggle } from "@/components/plan-item-toggle";
 import { FounderActionCreate } from "@/components/founder-action-create";
 import { ensureTodayPlan } from "@/server/programme/daily-plan";
 import { plainTaskStatus } from "@/lib/plain-labels";
+import { DutyWorkspaceMap } from "@/components/duty-workspace-map";
 
 export default async function CoordinatorDashboard() {
   const user = await getCurrentUser();
@@ -85,6 +86,10 @@ export default async function CoordinatorDashboard() {
             — this week&apos;s programme tasks and week checklist
           </li>
           <li>
+            Right side of every page — <strong>Your notes</strong> and{" "}
+            <strong>App gaps / issues</strong>
+          </li>
+          <li>
             <Link href="/founder" className="font-medium underline">
               Founder asks
             </Link>{" "}
@@ -98,6 +103,8 @@ export default async function CoordinatorDashboard() {
           </li>
         </ol>
       </section>
+
+      <DutyWorkspaceMap />
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
