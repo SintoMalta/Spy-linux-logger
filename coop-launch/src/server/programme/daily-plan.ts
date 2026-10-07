@@ -46,7 +46,7 @@ export async function proposeNextDayPriorities(user: SessionUser) {
   if (!canManageProgramme(user)) {
     throw new AuthError("FORBIDDEN", "Insufficient permissions");
   }
-  const [stage, waiting, followUps, openActions] = await Promise.all([
+  const [stage, waiting, recentPeople, openActions] = await Promise.all([
     prisma.stage.findFirst({
       where: { status: "IN_PROGRESS", deletedAt: null },
       include: { gate: { include: { criteria: true } }, tasks: { where: { deletedAt: null } } },
@@ -56,10 +56,8 @@ export async function proposeNextDayPriorities(user: SessionUser) {
       take: 5,
     }),
     prisma.person.findMany({
-      where: {
-        deletedAt: null,
-        followUpDate: { lte: new Date(Date.now() + 2 * 86400000) },
-      },
+      where: { deletedAt: null },
+      orderBy: { updatedAt: "desc" },
       take: 5,
     }),
     prisma.founderActionRequest.findMany({
@@ -71,7 +69,7 @@ export async function proposeNextDayPriorities(user: SessionUser) {
   const proposals = [
     stage ? `Continue Week ${stage.weekNumber}: ${stage.title}` : "Review programme status",
     ...waiting.map((t) => `Follow waiting: ${t.title}`),
-    ...followUps.map((p) => `Contacts follow-up: ${p.name}`),
+    ...recentPeople.map((p) => `Contacts follow-up: ${p.name}`),
     ...openActions.map((a) => `Founder ask open: ${a.title}`),
     ...(stage?.gate?.criteria.filter((c) => !c.satisfied).map((c) => `Week checklist open: ${c.label}`) ??
       []),
