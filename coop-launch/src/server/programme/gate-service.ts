@@ -95,6 +95,24 @@ export async function overrideGate(
   return override;
 }
 
+/** Record go / conditional / no-go for the final review week (API path still named week9). */
+export async function setWeek9Decision(
+  user: SessionUser,
+  decision: "GO" | "CONDITIONAL_GO" | "NO_GO",
+) {
+  if (!canManageProgramme(user)) {
+    throw new AuthError("FORBIDDEN", "Insufficient permissions");
+  }
+  await writeAudit({
+    actorId: user.id,
+    action: "GO_NO_GO_DECISION",
+    entityType: "Programme",
+    entityId: "week-final",
+    after: { decision },
+  });
+  return { decision, recorded: true as const };
+}
+
 export async function advanceStageIfGatePassed(
   user: SessionUser,
   gateId: string,

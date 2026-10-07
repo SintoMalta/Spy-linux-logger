@@ -40,10 +40,10 @@ async function main() {
     });
     const user = await prisma.user.upsert({
       where: { email },
-      update: { name, role, passwordHash, mustChangePassword: true, active: true },
-      create: { email, name, role, passwordHash, mustChangePassword: true },
+      update: { name, role, passwordHash, active: true },
+      create: { email, name, role, passwordHash, active: true },
     });
-    console.log(`Bootstrap OK: ${user.email} (${user.role}) mustChangePassword=true`);
+    console.log(`Bootstrap OK: ${user.email} (${user.role})`);
   } finally {
     rl.close();
     await prisma.$disconnect();

@@ -3,7 +3,7 @@ import { withMutation } from "@/server/http";
 import { addTaskNote, setDodSatisfied, updateTaskStatus } from "@/server/programme/task-service";
 
 const schema = z.object({
-  status: z.enum(["NOT_STARTED", "IN_PROGRESS", "WAITING_EXTERNAL", "BLOCKED", "ACHIEVED", "CANCELLED"]).optional(),
+  status: z.enum(["NOT_STARTED", "IN_PROGRESS", "BLOCKED", "ACHIEVED", "CANCELLED"]).optional(),
   waitingOnPersonId: z.string().optional().nullable(),
   waitingOnOrgId: z.string().optional().nullable(),
   dateRequested: z.string().optional().nullable(),

@@ -102,3 +102,62 @@ export async function setDodSatisfied(
   });
   return criterion;
 }
+
+export async function addTaskNote(user: SessionUser, taskId: string, note: string) {
+  if (!canManageProgramme(user)) {
+    throw new AuthError("FORBIDDEN", "Insufficient permissions");
+  }
+  const task = await prisma.task.findFirst({ where: { id: taskId, deletedAt: null } });
+  if (!task) throw new DomainError("NOT_FOUND", "Task not found");
+  await writeAudit({
+    actorId: user.id,
+    action: "TASK_NOTE",
+    entityType: "Task",
+    entityId: taskId,
+    after: { note: note.trim() },
+  });
+  return { id: taskId, note: note.trim() };
+}
+
+export async function updateTaskStatus(
+  user: SessionUser,
+  taskId: string,
+  input: {
+    status: "NOT_STARTED" | "IN_PROGRESS" | "BLOCKED" | "ACHIEVED" | "CANCELLED";
+    waitingOnPersonId?: string | null;
+    waitingOnOrgId?: string | null;
+    dateRequested?: string | null;
+    followUpDate?: string | null;
+  },
+) {
+  if (!canManageProgramme(user)) {
+    throw new AuthError("FORBIDDEN", "Insufficient permissions");
+  }
+  if (input.status === "ACHIEVED") {
+    return markTaskAchieved(user, taskId);
+  }
+  const before = await prisma.task.findFirst({ where: { id: taskId, deletedAt: null } });
+  if (!before) throw new DomainError("NOT_FOUND", "Task not found");
+  const updated = await prisma.task.update({
+    where: { id: taskId },
+    data: {
+      status: input.status,
+      achievedAt: null,
+    },
+  });
+  await writeAudit({
+    actorId: user.id,
+    action: "TASK_STATUS_UPDATED",
+    entityType: "Task",
+    entityId: taskId,
+    before: { status: before.status },
+    after: {
+      status: updated.status,
+      waitingOnPersonId: input.waitingOnPersonId ?? null,
+      waitingOnOrgId: input.waitingOnOrgId ?? null,
+      dateRequested: input.dateRequested ?? null,
+      followUpDate: input.followUpDate ?? null,
+    },
+  });
+  return updated;
+}
