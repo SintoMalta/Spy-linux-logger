@@ -1,0 +1,73 @@
+name: CoopLaunch CI
+
+on:
+  push:
+    paths:
+      - "coop-launch/**"
+      - ".github/workflows/coop-launch.yml"
+  pull_request:
+    paths:
+      - "coop-launch/**"
+      - ".github/workflows/coop-launch.yml"
+
+defaults:
+  run:
+    working-directory: coop-launch
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: coop
+          POSTGRES_PASSWORD: coop
+          POSTGRES_DB: coop_launch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U coop -d coop_launch"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://coop:coop@localhost:5432/coop_launch?schema=public
+      SESSION_SECRET: ci-session-secret-32chars-minimum
+      APP_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      S3_DRIVER: fs
+      LOCAL_S3_ROOT: ./.data/s3
+      S3_BUCKET: coop-launch
+      S3_BACKUP_BUCKET: coop-launch-backups
+      BACKUP_ENCRYPTION_KEY: ci-backup-key
+      TRUST_PROXY: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: coop-launch/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prisma migrate deploy
+      - run: pnpm db:seed
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec next start -H 127.0.0.1 -p 3000 &
+        env:
+          PORT: 3000
+      - name: Wait for server
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:3000/api/health && exit 0
+            sleep 2
+          done
+          exit 1
+      - run: PLAYWRIGHT_SKIP_WEBSERVER=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 pnpm exec playwright test

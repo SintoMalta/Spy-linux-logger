@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Task" ADD COLUMN IF NOT EXISTS "resultNotes" TEXT NOT NULL DEFAULT '';
