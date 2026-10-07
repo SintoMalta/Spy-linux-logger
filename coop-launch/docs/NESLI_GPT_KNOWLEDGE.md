@@ -87,7 +87,7 @@ If login fails: wrong email/password, or temporary connection issue. Try again. 
 Think of CoopLaunch as a guided workbook:
 
 1. **Home** — “Where to go” map + duty workspace map + today’s overview  
-2. **Your tasks** — Nesli’s daily to-do list (this is the main list she looks for)  
+2. **What to do now** (`/daily-plan`) — main work screen: each open task card explains what / how / where to save the result / mark done (this is the main list she looks for)  
 3. **Your notes** — personal notes she can save and reopen anytime (also in the right-side box)  
 4. **App issues** — log missing/wrong app gaps for builders to fix (also in the right-side box)  
 5. **12-week plan** — programme tasks for each week + week checklists  
@@ -317,7 +317,10 @@ Required items without a file still block full readiness.
 | Menu | Nesli / Admin / Coordinator | Founder |
 |------|-----------------------------|---------|
 | Home | Yes | No (goes to Your tasks) |
-| Founder tasks / Your tasks | Yes | Yes (main page) |
+| Your tasks | Yes (Nesli’s daily list) | No |
+| Your notes | Yes | No |
+| App issues | Yes | No |
+| Founder asks | Yes | Shown as **Your tasks** (main page) |
 | 12-week plan | Yes | No |
 | Contacts | Yes | No |
 | Interviews | Yes | No |
@@ -325,6 +328,7 @@ Required items without a file still block full readiness.
 | Decisions & docs | Yes | No |
 | Register co-op | Yes | No |
 | Log out | Yes | Yes |
+| Right-side notes + issues boxes | Yes | No |
 
 This is intentional. Nesli leads the programme; the founder focuses on assigned asks.
 

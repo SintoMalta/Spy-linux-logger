@@ -1,13 +1,13 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getCurrentUser } from "@/server/auth/session";
 import { canManageProgramme } from "@/server/auth/rbac";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
-import { TaskAchieveControls } from "@/components/task-achieve-controls";
-import { GateControls } from "@/components/gate-controls";
-import { DodToggle } from "@/components/dod-toggle";
-import { GateCriterionToggle } from "@/components/gate-criterion-toggle";
-import { plainStageStatus, plainTaskStatus } from "@/lib/plain-labels";
+import { TaskCoachCard } from "@/components/task-coach-card";
+import { WeekGateCoach } from "@/components/week-gate-coach";
+import { plainStageStatus } from "@/lib/plain-labels";
+import { plainWeek } from "@/lib/task-guides";
 
 export default async function ProgrammePage() {
   const user = await getCurrentUser();
@@ -26,114 +26,75 @@ export default async function ProgrammePage() {
       gate: {
         include: {
           criteria: { orderBy: { order: "asc" } },
-          overrides: { orderBy: { createdAt: "desc" }, take: 3 },
+          overrides: { orderBy: { createdAt: "desc" }, take: 1 },
         },
       },
     },
   });
 
-  const currentWeek =
-    stages.find((s) => s.status === "IN_PROGRESS") ??
-    stages.find((s) => s.status === "NOT_STARTED") ??
-    stages[0];
+  const current = stages.find((s) => s.status === "IN_PROGRESS");
 
   return (
     <div className="space-y-8">
-      <header>
+      <header className="rounded-xl border border-[var(--brand)]/30 bg-[var(--surface)] p-5">
         <h1 className="font-[family-name:var(--font-display)] text-3xl text-[var(--brand-dark)]">
           12-week plan
         </h1>
-        <p className="mt-1 text-[var(--muted)]">
-          Work week by week. For each task: finish the checklist, then mark the task finished.
-          When the week checklist is complete, move to the next week.
+        <p className="mt-2 text-[var(--muted)]">
+          This is the full programme. Day-to-day work is easier on{" "}
+          <Link href="/daily-plan" className="font-medium underline">
+            What to do now
+          </Link>
+          . Below, each week explains what it is for; open a week to work the task cards.
         </p>
-        {currentWeek ? (
-          <p className="mt-3 rounded-lg border border-[var(--brand)]/30 bg-[var(--surface)] px-3 py-2 text-sm">
-            <strong>Start here:</strong> Week {currentWeek.weekNumber} — {currentWeek.title}. Scroll
-            to that week below (status: {plainStageStatus(currentWeek.status)}).
+        {current ? (
+          <p className="mt-3 rounded-lg bg-[var(--surface-2)] px-3 py-2 text-sm">
+            <strong>Start here:</strong> {plainWeek(current.weekNumber, current.title).title}.{" "}
+            <Link href="#this-week" className="underline">
+              Jump to this week
+            </Link>
+            .
           </p>
         ) : null}
       </header>
 
-      {stages.map((stage) => (
-        <section
-          key={stage.id}
-          id={stage.status === "IN_PROGRESS" ? "this-week" : undefined}
-          className={`rounded-xl border p-4 ${
-            stage.status === "IN_PROGRESS"
-              ? "border-[var(--brand)] bg-[var(--surface)]"
-              : "border-[var(--border)] bg-[var(--surface)]/80"
-          }`}
-        >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-[family-name:var(--font-display)] text-xl">
-              {stage.status === "IN_PROGRESS" ? "This week — " : ""}
-              Week {stage.weekNumber}: {stage.title}
-            </h2>
-            <Badge>{plainStageStatus(stage.status)}</Badge>
-          </div>
-          <p className="mt-1 text-sm text-[var(--muted)]">{stage.description}</p>
-
-          <ul className="mt-4 space-y-4">
-            {stage.tasks.map((task) => (
-              <li key={task.id} className="border-t border-[var(--border)] pt-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="font-medium">{task.title}</div>
-                  <Badge>{plainTaskStatus(task.status)}</Badge>
-                </div>
-                <ul className="mt-2 space-y-2 text-sm text-[var(--muted)]">
-                  {task.dodCriteria.map((d) => (
-                    <li key={d.id} className="space-y-1">
-                      <div>
-                        Checklist: {d.label} —{" "}
-                        {d.satisfied || d.overridden ? "done" : "not done"}
-                      </div>
-                      <DodToggle
-                        criterionId={d.id}
-                        satisfied={d.satisfied || d.overridden}
-                      />
-                    </li>
-                  ))}
-                </ul>
-                {task.status !== "ACHIEVED" ? (
-                  <TaskAchieveControls
-                    taskId={task.id}
-                    dodComplete={task.dodCriteria.every(
-                      (d) => d.satisfied || d.overridden,
-                    )}
-                  />
-                ) : null}
-              </li>
-            ))}
-          </ul>
-
-          {stage.gate ? (
-            <div className="mt-4 rounded-lg bg-[var(--surface-2)] p-3">
-              <h3 className="font-medium">End of week checklist: {stage.gate.title}</h3>
-              <p className="mt-1 text-sm text-[var(--muted)]">{stage.gate.description}</p>
-              <ul className="mt-2 space-y-3 text-sm">
-                {stage.gate.criteria.map((c) => (
-                  <li key={c.id}>
-                    <div>
-                      {c.label} — {c.satisfied ? "done" : "not done"}
-                    </div>
-                    <GateCriterionToggle
-                      criterionId={c.id}
-                      satisfied={c.satisfied}
-                    />
-                  </li>
-                ))}
-              </ul>
-              {stage.gate.overrides[0] ? (
-                <p className="mt-2 text-xs text-[var(--muted)]">
-                  Skipped with reason: {stage.gate.overrides[0].reason}
-                </p>
-              ) : null}
-              <GateControls gateId={stage.gate.id} />
+      {stages.map((stage) => {
+        const meta = plainWeek(stage.weekNumber, stage.title);
+        const isCurrent = stage.status === "IN_PROGRESS";
+        return (
+          <section
+            key={stage.id}
+            id={isCurrent ? "this-week" : undefined}
+            className={`rounded-xl border p-4 sm:p-5 ${
+              isCurrent
+                ? "border-[var(--brand)] bg-[var(--surface)]"
+                : "border-[var(--border)] bg-[var(--surface)]/80"
+            }`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-[family-name:var(--font-display)] text-xl">
+                {isCurrent ? "This week — " : ""}
+                {meta.title}
+              </h2>
+              <Badge>{plainStageStatus(stage.status)}</Badge>
             </div>
-          ) : null}
-        </section>
-      ))}
+            <p className="mt-1 text-sm text-[var(--muted)]">{meta.meaning}</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">Official title: {stage.title}</p>
+
+            <div className="mt-4 space-y-4">
+              {stage.tasks.map((task) => (
+                <TaskCoachCard key={task.id} task={task} />
+              ))}
+            </div>
+
+            {stage.gate ? (
+              <div className="mt-4">
+                <WeekGateCoach gate={stage.gate} weekNumber={stage.weekNumber} />
+              </div>
+            ) : null}
+          </section>
+        );
+      })}
     </div>
   );
 }

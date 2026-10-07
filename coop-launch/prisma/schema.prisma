@@ -220,6 +220,8 @@ model Task {
   stage       Stage      @relation(fields: [stageId], references: [id])
   title       String
   description String     @default("")
+  /** Nesli's written result / evidence for this task */
+  resultNotes String     @default("")
   status      TaskStatus @default(NOT_STARTED)
   ownerUserId String?
   owner       User?      @relation("TaskOwner", fields: [ownerUserId], references: [id])

@@ -6,9 +6,9 @@ import { LoginForm } from "@/components/login-form";
 export default async function HomePage() {
   const user = await getCurrentUser();
   if (user) {
-    if (canManageProgramme(user)) redirect("/dashboard");
+    if (canManageProgramme(user)) redirect("/daily-plan");
     if (canAccessFounderDashboard(user)) redirect("/founder");
-    redirect("/dashboard");
+    redirect("/daily-plan");
   }
 
   return (

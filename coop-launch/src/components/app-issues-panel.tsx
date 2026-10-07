@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiMutate } from "@/components/simple-form";
 import { Badge } from "@/components/ui/badge";
+import { ActionFeedback } from "@/components/action-feedback";
 
 type Issue = {
   id: string;
@@ -29,11 +30,14 @@ export function AppIssuesQuickCapture({ recent }: { recent: Issue[] }) {
   const [pageOrTab, setPageOrTab] = useState("");
   const [body, setBody] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [flash, setFlash] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function save() {
     setBusy(true);
     setMsg(null);
+    setError(null);
     try {
       await apiMutate("/api/app-issues", {
         method: "POST",
@@ -42,10 +46,11 @@ export function AppIssuesQuickCapture({ recent }: { recent: Issue[] }) {
       setTitle("");
       setPageOrTab("");
       setBody("");
-      setMsg("Issue saved for the builders");
+      setMsg("Issue saved — builders can open App issues anytime.");
+      setFlash((n) => n + 1);
       router.refresh();
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : "Could not save");
+      setError(err instanceof Error ? err.message : "Could not save");
     } finally {
       setBusy(false);
     }
@@ -86,7 +91,8 @@ export function AppIssuesQuickCapture({ recent }: { recent: Issue[] }) {
       >
         {busy ? "Saving…" : "Save issue"}
       </Button>
-      {msg ? <p className="text-xs text-[var(--muted)]">{msg}</p> : null}
+      <ActionFeedback message={msg} flashKey={flash} />
+      {error ? <p className="text-xs text-red-700">{error}</p> : null}
       <ul className="space-y-2 border-t border-[var(--border)] pt-3">
         {recent.slice(0, 4).map((i) => (
           <li key={i.id} className="text-xs">

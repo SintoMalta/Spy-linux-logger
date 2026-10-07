@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiMutate } from "@/components/simple-form";
+import { ActionFeedback } from "@/components/action-feedback";
 
 type Note = {
   id: string;
@@ -19,11 +20,14 @@ export function NotesQuickCapture({ recent }: { recent: Note[] }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [flash, setFlash] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function save() {
     setBusy(true);
     setMsg(null);
+    setError(null);
     try {
       await apiMutate("/api/notes", {
         method: "POST",
@@ -31,10 +35,11 @@ export function NotesQuickCapture({ recent }: { recent: Note[] }) {
       });
       setTitle("");
       setBody("");
-      setMsg("Saved");
+      setMsg("Note saved — open Your notes anytime to see it.");
+      setFlash((n) => n + 1);
       router.refresh();
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : "Could not save");
+      setError(err instanceof Error ? err.message : "Could not save");
     } finally {
       setBusy(false);
     }
@@ -64,7 +69,8 @@ export function NotesQuickCapture({ recent }: { recent: Note[] }) {
       <Button type="button" size="sm" disabled={busy || !body.trim()} onClick={save}>
         {busy ? "Saving…" : "Save note"}
       </Button>
-      {msg ? <p className="text-xs text-[var(--muted)]">{msg}</p> : null}
+      <ActionFeedback message={msg} flashKey={flash} />
+      {error ? <p className="text-xs text-red-700">{error}</p> : null}
       <ul className="space-y-2 border-t border-[var(--border)] pt-3">
         {recent.slice(0, 4).map((n) => (
           <li key={n.id} className="text-xs">

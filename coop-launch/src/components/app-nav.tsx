@@ -12,7 +12,7 @@ function navLinks(user: SessionUser) {
     },
     {
       href: "/daily-plan",
-      label: "Your tasks",
+      label: "What to do now",
       show: canManageProgramme(user),
     },
     {

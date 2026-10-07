@@ -63,8 +63,11 @@ export default async function CoordinatorDashboard() {
           Home
         </h1>
         <p className="mt-1 text-[var(--muted)]">
-          Start here. Your task list is under <strong>Your tasks</strong>. Week-by-week work is
-          under <strong>12-week plan</strong>.
+          Overview page. Day-to-day work is on{" "}
+          <Link href="/daily-plan" className="font-medium underline">
+            What to do now
+          </Link>
+          .
         </p>
       </header>
 
@@ -75,9 +78,9 @@ export default async function CoordinatorDashboard() {
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm">
           <li>
             <Link href="/daily-plan" className="font-medium underline">
-              Your tasks
+              What to do now
             </Link>{" "}
-            — today&apos;s checklist (tick items as you finish them)
+            — main screen: what / how / save result / mark done
           </li>
           <li>
             <Link href="/programme" className="font-medium underline">

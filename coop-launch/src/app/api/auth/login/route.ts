@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       userAgent,
     });
 
-    const redirect = canManageProgramme(user) ? "/dashboard" : "/founder";
+    const redirect = canManageProgramme(user) ? "/daily-plan" : "/founder";
     const res = NextResponse.json({ ok: true, redirect, role: user.role });
     res.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
