@@ -86,18 +86,34 @@ If login fails: wrong email/password, or temporary connection issue. Try again. 
 
 Think of CoopLaunch as a guided workbook:
 
-1. **Home** — “Where to go” map + today’s overview  
+1. **Home** — “Where to go” map + duty workspace map + today’s overview  
 2. **Your tasks** — Nesli’s daily to-do list (this is the main list she looks for)  
-3. **12-week plan** — programme tasks for each week + week checklists  
-4. **Founder asks** — things Nesli asked the founder to do (not Nesli’s own list)  
-5. **Contacts** — companies/people to talk to (CRM)  
-6. **Interviews** — write what they said and tag problems  
-7. **Money & value** — prices, assumptions, member savings ideas  
-8. **Decisions & docs** — advice, meetings, decisions, risks, uploads  
-9. **Register co-op** — checklist before legal registration  
+3. **Your notes** — personal notes she can save and reopen anytime (also in the right-side box)  
+4. **App issues** — log missing/wrong app gaps for builders to fix (also in the right-side box)  
+5. **12-week plan** — programme tasks for each week + week checklists  
+6. **Founder asks** — things Nesli asked the founder to do (not Nesli’s own list)  
+7. **Contacts** — companies/people to talk to (CRM)  
+8. **Interviews** — write what they said and tag problems  
+9. **Money & value** — prices, assumptions, member savings ideas  
+10. **Decisions & docs** — advice, meetings, decisions, risks, uploads  
+11. **Register co-op** — checklist before legal registration  
+
+**Right-side boxes (every coordinator page):**  
+- **Your notes** — quick save + recent notes + link to full **Your notes** page  
+- **App gaps / issues** — report missing tabs / mismatches + link to full **App issues** page  
 
 **If Nesli asks “where is my task list?”**  
-Answer: Open the top menu item **Your tasks**. That page is her daily list. For the week’s programme work, also open **12-week plan** and look for the week marked **This week**. Home also shows a **Where to go** box with the same links.
+Answer: Open the top menu item **Your tasks**. That page is her daily list. For the week’s programme work, also open **12-week plan** and look for the week marked **This week**. Home also shows a **Where to go** box and a **Your work spaces (by duty)** map.
+
+**If Nesli asks “where do I do my duties?”** use this map:
+- Organise contacts → **Contacts**
+- Arrange / record interviews → **Interviews** (people come from **Contacts**)
+- Keep documents organised / collect evidence → **Decisions & docs** (+ attach on **Register co-op**)
+- Follow 12-week programme → **Your tasks** + **12-week plan**
+- Follow up unanswered requests → **Founder asks** / Home waiting list
+- Coordinate advisers / track decisions → **Decisions & docs** (Advice + Decisions)
+- Prepare info for founder → **Founder asks** + **Your notes**
+- Registration prep → **Register co-op**
 
 Core rule of the 12-week plan:
 - Each task has a **checklist**
@@ -130,10 +146,20 @@ Overview of:
 **This is Nesli’s main to-do list.**  
 Shows:
 - Quick path (what to do in order)
-- Today’s time blocks to tick off (Settle & priorities, Deep work, Outreach / CRM, Admin & documents, Close-out)
+- Today’s time blocks to tick off (Settle & priorities, Deep work, Outreach / Contacts, Admin & documents, Close-out)
 - **Save today’s list** / **Save end-of-day notes**
 - Ideas for tomorrow (suggestions only)
+- **Your work spaces (by duty)** map
 - Also do this week — unfinished programme tasks + link to **12-week plan**
+
+### Your notes
+Full page of personal notes. Buttons: **Save note**, **Remove**.  
+Same capture box also sits on the **right side of every page**.
+
+### App issues
+Full page to log app gaps / missing / mismatched tabs.  
+Statuses: Open · Looking at it · Fixed.  
+Builders use this list to implement Nesli’s needs. Same quick box is on the **right side of every page**.
 
 ### Founder asks
 Page where Nesli sees asks she sent to the founder.  
