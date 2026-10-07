@@ -30,7 +30,11 @@ export function TaskAchieveControls({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "Failed");
+        setError(
+          data.code === "DOD_INCOMPLETE"
+            ? "Mark the checklist done first, or type a reason to finish anyway."
+            : (data.error ?? "Could not finish task"),
+        );
         return;
       }
       router.refresh();
@@ -43,13 +47,13 @@ export function TaskAchieveControls({
     <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
       {!dodComplete ? (
         <Input
-          placeholder="Authorised override reason (required if DoD open)"
+          placeholder="Reason to finish without full checklist"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
         />
       ) : null}
       <Button type="button" onClick={achieve} disabled={loading}>
-        Mark ACHIEVED
+        {loading ? "Saving…" : "Mark task finished"}
       </Button>
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
     </div>

@@ -4,6 +4,7 @@ import { canAccessFounderDashboard } from "@/server/auth/rbac";
 import { prisma } from "@/lib/prisma";
 import { FounderActionButtons } from "@/components/founder-action-buttons";
 import { Badge } from "@/components/ui/badge";
+import { plainFounderActionStatus, plainStageStatus } from "@/lib/plain-labels";
 
 export default async function FounderDashboard() {
   const user = await getCurrentUser();
@@ -15,7 +16,11 @@ export default async function FounderDashboard() {
 
   const [actions, stages, people] = await Promise.all([
     prisma.founderActionRequest.findMany({
-      where: { deletedAt: null, status: { in: ["OPEN", "DEFERRED"] }, ...assigneeFilter },
+      where: {
+        deletedAt: null,
+        status: { in: ["OPEN", "DEFERRED"] },
+        ...assigneeFilter,
+      },
       orderBy: { updatedAt: "desc" },
     }),
     prisma.stage.findMany({
@@ -35,10 +40,11 @@ export default async function FounderDashboard() {
     <div className="space-y-8">
       <header>
         <h1 className="font-[family-name:var(--font-display)] text-3xl text-[var(--brand-dark)]">
-          Needs from you
+          Your tasks
         </h1>
         <p className="mt-1 text-[var(--muted)]">
-          Simple actions for this week — Done, Comment, Call Nesli, or Defer.
+          Things Nesli asked you to do. For each one you can mark Done, add a comment, ask Nesli
+          to call you, or do it later.
         </p>
       </header>
 
@@ -56,13 +62,13 @@ export default async function FounderDashboard() {
                   <p className="mt-2 text-sm">Last comment: {a.comment}</p>
                 ) : null}
               </div>
-              <Badge>{a.status}</Badge>
+              <Badge>{plainFounderActionStatus(a.status)}</Badge>
             </div>
             <FounderActionButtons actionId={a.id} />
           </article>
         ))}
         {actions.length === 0 ? (
-          <p className="text-[var(--muted)]">No open requests. Thank you.</p>
+          <p className="text-[var(--muted)]">No open tasks for you right now. Thank you.</p>
         ) : null}
       </section>
 
@@ -73,7 +79,7 @@ export default async function FounderDashboard() {
             {stages.map((s) => (
               <li key={s.id}>
                 Week {s.weekNumber}: {s.title}{" "}
-                <Badge className="ml-2">{s.status}</Badge>
+                <Badge className="ml-2">{plainStageStatus(s.status)}</Badge>
               </li>
             ))}
           </ul>
@@ -87,6 +93,9 @@ export default async function FounderDashboard() {
                 {p.organisation ? ` · ${p.organisation.name}` : ""}
               </li>
             ))}
+            {people.length === 0 ? (
+              <li className="text-[var(--muted)]">No people listed yet.</li>
+            ) : null}
           </ul>
         </div>
       </section>

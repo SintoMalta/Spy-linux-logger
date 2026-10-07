@@ -7,6 +7,7 @@ import { TaskAchieveControls } from "@/components/task-achieve-controls";
 import { GateControls } from "@/components/gate-controls";
 import { DodToggle } from "@/components/dod-toggle";
 import { GateCriterionToggle } from "@/components/gate-criterion-toggle";
+import { plainStageStatus, plainTaskStatus } from "@/lib/plain-labels";
 
 export default async function ProgrammePage() {
   const user = await getCurrentUser();
@@ -35,10 +36,11 @@ export default async function ProgrammePage() {
     <div className="space-y-8">
       <header>
         <h1 className="font-[family-name:var(--font-display)] text-3xl text-[var(--brand-dark)]">
-          Programme
+          12-week plan
         </h1>
         <p className="mt-1 text-[var(--muted)]">
-          Twelve weeks · Definition of Done · Gates (Evidence → Decision → Gate).
+          Work week by week. For each task: finish the checklist, then mark the task finished.
+          When the week checklist is complete, move to the next week.
         </p>
       </header>
 
@@ -51,7 +53,7 @@ export default async function ProgrammePage() {
             <h2 className="font-[family-name:var(--font-display)] text-xl">
               Week {stage.weekNumber}: {stage.title}
             </h2>
-            <Badge>{stage.status}</Badge>
+            <Badge>{plainStageStatus(stage.status)}</Badge>
           </div>
           <p className="mt-1 text-sm text-[var(--muted)]">{stage.description}</p>
 
@@ -60,14 +62,14 @@ export default async function ProgrammePage() {
               <li key={task.id} className="border-t border-[var(--border)] pt-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="font-medium">{task.title}</div>
-                  <Badge>{task.status}</Badge>
+                  <Badge>{plainTaskStatus(task.status)}</Badge>
                 </div>
                 <ul className="mt-2 space-y-2 text-sm text-[var(--muted)]">
                   {task.dodCriteria.map((d) => (
                     <li key={d.id} className="space-y-1">
                       <div>
-                        DoD: {d.label} —{" "}
-                        {d.satisfied || d.overridden ? "met" : "open"}
+                        Checklist: {d.label} —{" "}
+                        {d.satisfied || d.overridden ? "done" : "not done"}
                       </div>
                       <DodToggle
                         criterionId={d.id}
@@ -90,13 +92,13 @@ export default async function ProgrammePage() {
 
           {stage.gate ? (
             <div className="mt-4 rounded-lg bg-[var(--surface-2)] p-3">
-              <h3 className="font-medium">Gate: {stage.gate.title}</h3>
+              <h3 className="font-medium">End of week checklist: {stage.gate.title}</h3>
+              <p className="mt-1 text-sm text-[var(--muted)]">{stage.gate.description}</p>
               <ul className="mt-2 space-y-3 text-sm">
                 {stage.gate.criteria.map((c) => (
                   <li key={c.id}>
                     <div>
-                      {c.label} [{c.type}] —{" "}
-                      {c.satisfied ? "satisfied" : "open"}
+                      {c.label} — {c.satisfied ? "done" : "not done"}
                     </div>
                     <GateCriterionToggle
                       criterionId={c.id}
@@ -107,7 +109,7 @@ export default async function ProgrammePage() {
               </ul>
               {stage.gate.overrides[0] ? (
                 <p className="mt-2 text-xs text-[var(--muted)]">
-                  Override on file: {stage.gate.overrides[0].reason}
+                  Skipped with reason: {stage.gate.overrides[0].reason}
                 </p>
               ) : null}
               <GateControls gateId={stage.gate.id} />

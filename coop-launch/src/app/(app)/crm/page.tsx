@@ -4,6 +4,7 @@ import { canManageProgramme } from "@/server/auth/rbac";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import { CrmForms } from "@/components/crm-forms";
+import { plainOrgStatus } from "@/lib/plain-labels";
 
 export default async function CrmPage() {
   const user = await getCurrentUser();
@@ -20,16 +21,19 @@ export default async function CrmPage() {
     <div className="space-y-6">
       <header>
         <h1 className="font-[family-name:var(--font-display)] text-3xl text-[var(--brand-dark)]">
-          CRM
+          Contacts
         </h1>
         <p className="mt-1 text-[var(--muted)]">
-          Organisations and people. Status includes DO_NOT_PURSUE.
+          Companies and people you talk to. Add real construction contacts here when you are ready.
         </p>
       </header>
-      <CrmForms
-        organisations={orgs.map((o) => ({ id: o.id, name: o.name }))}
-      />
+      <CrmForms organisations={orgs.map((o) => ({ id: o.id, name: o.name }))} />
       <div className="space-y-4">
+        {orgs.length === 0 ? (
+          <p className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/80 p-4 text-sm text-[var(--muted)]">
+            No contacts yet. Use the form above to add a company or person.
+          </p>
+        ) : null}
         {orgs.map((org) => (
           <article
             key={org.id}
@@ -37,19 +41,23 @@ export default async function CrmPage() {
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-semibold">{org.name}</h2>
-              <Badge>{org.status}</Badge>
+              <Badge>{plainOrgStatus(org.status)}</Badge>
             </div>
             <p className="text-sm text-[var(--muted)]">
-              {org.sector || "Sector unset"} · {org.notes}
+              {org.sector || "Sector not set"}
+              {org.notes ? ` · ${org.notes}` : ""}
             </p>
             <ul className="mt-3 space-y-1 text-sm">
               {org.people.map((p) => (
                 <li key={p.id}>
                   {p.name}
                   {p.roleTitle ? ` — ${p.roleTitle}` : ""}{" "}
-                  <Badge className="ml-1">{p.status}</Badge>
+                  <Badge className="ml-1">{plainOrgStatus(p.status)}</Badge>
                 </li>
               ))}
+              {org.people.length === 0 ? (
+                <li className="text-[var(--muted)]">No people listed yet.</li>
+              ) : null}
             </ul>
           </article>
         ))}

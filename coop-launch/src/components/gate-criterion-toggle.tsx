@@ -31,7 +31,7 @@ export function GateCriterionToggle({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "Failed");
+        setError(data.error ?? "Could not update");
         return;
       }
       router.refresh();
@@ -43,7 +43,7 @@ export function GateCriterionToggle({
   return (
     <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center">
       <Input
-        placeholder="Evidence note (optional)"
+        placeholder="Optional note (what proves this is done)"
         value={note}
         onChange={(e) => setNote(e.target.value)}
       />
@@ -53,7 +53,7 @@ export function GateCriterionToggle({
         disabled={loading}
         onClick={() => setSatisfied(!satisfied)}
       >
-        {satisfied ? "Mark criterion open" : "Mark criterion met"}
+        {satisfied ? "Mark as not done" : "Mark checklist item done"}
       </Button>
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
     </div>

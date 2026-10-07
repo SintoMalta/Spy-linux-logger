@@ -51,7 +51,7 @@ export function RegistrationControls({
         value={docId}
         onChange={(e) => setDocId(e.target.value)}
       >
-        <option value="">No evidence document</option>
+        <option value="">No supporting file</option>
         {documents.map((d) => (
           <option key={d.id} value={d.id}>
             {d.filename}
@@ -59,7 +59,7 @@ export function RegistrationControls({
         ))}
       </select>
       <Button type="button" disabled={busy} onClick={() => save(!completed)}>
-        {completed ? "Mark open" : "Mark complete"}
+        {completed ? "Mark as not done" : "Mark as done"}
       </Button>
       {msg ? <span className="text-sm text-[var(--muted)]">{msg}</span> : null}
     </div>

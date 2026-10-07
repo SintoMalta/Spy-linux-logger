@@ -17,7 +17,9 @@ export default async function InterviewsPage() {
       include: {
         organisation: true,
         person: true,
-        answers: { include: { question: true, tags: { include: { tag: true } } } },
+        answers: {
+          include: { question: true, tags: { include: { tag: true } } },
+        },
       },
       orderBy: { conductedAt: "desc" },
     }),
@@ -37,17 +39,17 @@ export default async function InterviewsPage() {
     <div className="space-y-8">
       <header>
         <h1 className="font-[family-name:var(--font-display)] text-3xl text-[var(--brand-dark)]">
-          Interviews & Problem Matrix
+          Interviews
         </h1>
         <p className="mt-1 text-[var(--muted)]">
-          Aggregated tags only in the matrix — confidential financial answers stay role-scoped.
+          Write down what people told you. The problem list below shows which topics come up most.
         </p>
       </header>
 
       <InterviewForm organisations={organisations} />
 
       <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/80 p-4">
-        <h2 className="font-[family-name:var(--font-display)] text-lg">Problem Matrix</h2>
+        <h2 className="font-[family-name:var(--font-display)] text-lg">Common problems</h2>
         <ul className="mt-3 space-y-2">
           {matrix.map((row) => (
             <li key={row.tag} className="flex justify-between gap-3 text-sm">
@@ -55,18 +57,21 @@ export default async function InterviewsPage() {
               <Badge>{row.count}</Badge>
             </li>
           ))}
+          {matrix.length === 0 ? (
+            <li className="text-sm text-[var(--muted)]">No interview tags yet.</li>
+          ) : null}
         </ul>
       </section>
 
       <section className="space-y-3">
-        <h2 className="font-[family-name:var(--font-display)] text-lg">Interviews</h2>
+        <h2 className="font-[family-name:var(--font-display)] text-lg">Saved interviews</h2>
         {interviews.map((iv) => (
           <article
             key={iv.id}
             className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/80 p-4 text-sm"
           >
             <div className="font-medium">
-              {iv.organisation?.name ?? "Org"} · {iv.person?.name ?? "Person"}
+              {iv.organisation?.name ?? "Company"} · {iv.person?.name ?? "Person"}
             </div>
             <ul className="mt-2 space-y-1 text-[var(--muted)]">
               {iv.answers.map((a) => (
@@ -83,14 +88,15 @@ export default async function InterviewsPage() {
             </ul>
           </article>
         ))}
+        {interviews.length === 0 ? (
+          <p className="text-sm text-[var(--muted)]">No interviews saved yet.</p>
+        ) : null}
       </section>
 
       <section className="space-y-3">
-        <h2 className="font-[family-name:var(--font-display)] text-lg">
-          Founder assessments
-        </h2>
+        <h2 className="font-[family-name:var(--font-display)] text-lg">Founder notes</h2>
         <p className="text-sm text-[var(--muted)]">
-          Red-flag prompts are questions to explore — not verdicts.
+          These are notes to discuss — not final judgments.
         </p>
         {assessments.map((a) => (
           <article
@@ -99,10 +105,10 @@ export default async function InterviewsPage() {
           >
             <h3 className="font-medium">{a.title}</h3>
             <p className="mt-2 text-sm">
-              <strong>Positive indicators:</strong> {a.positiveNotes}
+              <strong>Positive signs:</strong> {a.positiveNotes}
             </p>
             <p className="mt-1 text-sm">
-              <strong>Red-flag prompts:</strong> {a.redFlagPrompts}
+              <strong>Questions to explore:</strong> {a.redFlagPrompts}
             </p>
             <p className="mt-1 text-sm text-[var(--muted)]">{a.evidenceNotes}</p>
           </article>

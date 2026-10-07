@@ -25,10 +25,10 @@ export default async function GovernancePage() {
     <div className="space-y-8">
       <header>
         <h1 className="font-[family-name:var(--font-display)] text-3xl text-[var(--brand-dark)]">
-          Governance pack
+          Decisions & documents
         </h1>
         <p className="mt-1 text-[var(--muted)]">
-          Advice, meetings, immutable decisions, risks, documents, and §31–32 templates.
+          Advice, meetings, decisions, risks, uploaded files, and message templates.
         </p>
       </header>
 
@@ -49,7 +49,7 @@ export default async function GovernancePage() {
         ))}
       </Grid>
 
-      <Grid title="Decisions (immutable)">
+      <Grid title="Decisions (locked once saved)">
         {decisions.map((d) => (
           <li key={d.id} className="text-sm">
             <div className="font-medium">{d.title}</div>

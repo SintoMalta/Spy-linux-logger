@@ -35,7 +35,7 @@ export function FounderActionCreate({
       }
       setTitle("");
       setDetail("");
-      setMsg("Ask sent to founder");
+      setMsg("Sent to the founder");
       router.refresh();
     } finally {
       setBusy(false);
@@ -56,10 +56,10 @@ export function FounderActionCreate({
       className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]/80 p-4"
     >
       <h2 className="font-[family-name:var(--font-display)] text-lg">
-        Ask founder to do something
+        Ask the founder to do something
       </h2>
       <div className="space-y-1">
-        <Label htmlFor="askTitle">Title</Label>
+        <Label htmlFor="askTitle">What should they do?</Label>
         <Input
           id="askTitle"
           value={title}
@@ -68,7 +68,7 @@ export function FounderActionCreate({
         />
       </div>
       <div className="space-y-1">
-        <Label htmlFor="askDetail">Details</Label>
+        <Label htmlFor="askDetail">More detail (optional)</Label>
         <Input
           id="askDetail"
           value={detail}

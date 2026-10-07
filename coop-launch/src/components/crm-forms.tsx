@@ -79,13 +79,13 @@ export function CrmForms({
   return (
     <div className="space-y-6 rounded-xl border border-[var(--border)] bg-[var(--surface)]/80 p-4">
       <h2 className="font-[family-name:var(--font-display)] text-lg">
-        Add organisation / contact
+        Add a company or person
       </h2>
       {msg ? <p className="text-sm text-[var(--muted)]">{msg}</p> : null}
 
       <form onSubmit={createOrg} className="grid gap-3 sm:grid-cols-3">
         <div className="space-y-1">
-          <Label htmlFor="orgName">Organisation</Label>
+          <Label htmlFor="orgName">Company name</Label>
           <Input
             id="orgName"
             value={orgName}
@@ -103,14 +103,14 @@ export function CrmForms({
         </div>
         <div className="flex items-end">
           <Button type="submit" disabled={busy} className="w-full">
-            Add organisation
+            Add company
           </Button>
         </div>
       </form>
 
       <form onSubmit={createPerson} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <div className="space-y-1">
-          <Label htmlFor="personName">Person</Label>
+          <Label htmlFor="personName">Person name</Label>
           <Input
             id="personName"
             value={personName}
@@ -119,7 +119,7 @@ export function CrmForms({
           />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="orgId">Organisation</Label>
+          <Label htmlFor="orgId">Company</Label>
           <select
             id="orgId"
             className="flex h-10 w-full rounded-md border border-[var(--border)] bg-transparent px-3 text-sm"
@@ -153,7 +153,7 @@ export function CrmForms({
         </div>
         <div className="flex items-end">
           <Button type="submit" disabled={busy} className="w-full">
-            Add contact
+            Add person
           </Button>
         </div>
       </form>

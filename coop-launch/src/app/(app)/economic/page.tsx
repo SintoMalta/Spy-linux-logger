@@ -26,10 +26,11 @@ export default async function EconomicPage() {
     <div className="space-y-8">
       <header>
         <h1 className="font-[family-name:var(--font-display)] text-3xl text-[var(--brand-dark)]">
-          Economic validation
+          Money & value
         </h1>
         <p className="mt-1 text-[var(--muted)]">
-          Offers, labelled assumptions, and member value — no cross-member price leaks.
+          Supplier prices, money assumptions, and what a member might save. Private prices stay
+          private.
         </p>
       </header>
 
@@ -65,7 +66,7 @@ export default async function EconomicPage() {
 
       <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/80 p-4">
         <h2 className="font-[family-name:var(--font-display)] text-lg">
-          Financial assumptions
+          Money assumptions
         </h2>
         <ul className="mt-3 space-y-2 text-sm">
           {assumptions.map((a) => (
@@ -84,7 +85,7 @@ export default async function EconomicPage() {
 
       <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/80 p-4">
         <h2 className="font-[family-name:var(--font-display)] text-lg">
-          Member value statements
+          What a member might gain
         </h2>
         <ul className="mt-3 space-y-2 text-sm">
           {statements.map((s) => (

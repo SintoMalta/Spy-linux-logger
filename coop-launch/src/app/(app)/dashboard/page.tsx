@@ -7,6 +7,7 @@ import Link from "next/link";
 import { getRegistrationReadiness } from "@/server/registration/readiness";
 import { PlanItemToggle } from "@/components/plan-item-toggle";
 import { FounderActionCreate } from "@/components/founder-action-create";
+import { plainTaskStatus } from "@/lib/plain-labels";
 
 export default async function CoordinatorDashboard() {
   const user = await getCurrentUser();
@@ -53,38 +54,42 @@ export default async function CoordinatorDashboard() {
 
   const current = stages.find((s) => s.status === "IN_PROGRESS") ?? stages[0];
   const gate = current?.gate;
-  const unmet =
-    gate?.criteria.filter((c) => !c.satisfied).length ?? 0;
+  const unmet = gate?.criteria.filter((c) => !c.satisfied).length ?? 0;
   const overridden = (gate?.overrides.length ?? 0) > 0;
 
   return (
     <div className="space-y-8">
       <header>
         <h1 className="font-[family-name:var(--font-display)] text-3xl text-[var(--brand-dark)]">
-          Coordinator dashboard
+          Home
         </h1>
         <p className="mt-1 text-[var(--muted)]">
-          Status, daily plan, waiting items, founder needs, and gate blockers.
+          Your day at a glance: today&apos;s work, what the founder still needs to do, and this
+          week&apos;s checklist.
         </p>
       </header>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Current week" value={current ? `W${current.weekNumber}` : "—"} hint={current?.title} />
         <Stat
-          label="Gate"
-          value={overridden ? "Override" : unmet === 0 ? "Ready" : `${unmet} open`}
+          label="This week"
+          value={current ? `Week ${current.weekNumber}` : "—"}
+          hint={current?.title}
+        />
+        <Stat
+          label="Week checklist"
+          value={overridden ? "Skipped with reason" : unmet === 0 ? "Ready" : `${unmet} left`}
           hint={gate?.title}
         />
         <Stat
-          label="Registration"
+          label="Register co-op"
           value={`${readiness.percent}%`}
-          hint={readiness.blocked ? "Mandatory blockers" : "Clear"}
+          hint={readiness.blocked ? "Still missing required items" : "Looking good"}
         />
-        <Stat label="Open founder asks" value={String(openActions.length)} />
+        <Stat label="Waiting on founder" value={String(openActions.length)} />
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
-        <Panel title="Today’s 4h plan">
+        <Panel title="Today’s plan (about 4 hours)">
           {plan ? (
             <ul className="space-y-2">
               {plan.items.map((item) => (
@@ -96,71 +101,77 @@ export default async function CoordinatorDashboard() {
                     {item.title}
                   </span>
                   <span className="flex items-center gap-2">
-                    <span className="text-[var(--muted)]">{item.minutes}m</span>
+                    <span className="text-[var(--muted)]">{item.minutes} min</span>
                     <PlanItemToggle itemId={item.id} done={item.done} />
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-[var(--muted)]">No plan for today yet.</p>
+            <p className="text-sm text-[var(--muted)]">No plan set for today yet.</p>
           )}
         </Panel>
 
-        <Panel title="Needs from founder">
+        <Panel title="Waiting on the founder">
           <ul className="space-y-3">
             {openActions.map((a) => (
               <li key={a.id} className="text-sm">
                 <div className="font-medium">{a.title}</div>
-                <div className="text-[var(--muted)]">{a.assignee.name}</div>
+                <div className="text-[var(--muted)]">For: {a.assignee.name}</div>
               </li>
             ))}
             {openActions.length === 0 ? (
-              <li className="text-sm text-[var(--muted)]">Nothing waiting.</li>
+              <li className="text-sm text-[var(--muted)]">Nothing waiting right now.</li>
             ) : null}
           </ul>
         </Panel>
 
-        <Panel title="Priorities & waiting">
+        <Panel title="Tasks still open">
           <ul className="space-y-2">
             {waitingTasks.map((t) => (
               <li key={t.id} className="flex items-center justify-between gap-2 text-sm">
                 <Link href="/programme" className="hover:underline">
                   {t.title}
                 </Link>
-                <Badge>{t.status}</Badge>
+                <Badge>{plainTaskStatus(t.status)}</Badge>
               </li>
             ))}
+            {waitingTasks.length === 0 ? (
+              <li className="text-sm text-[var(--muted)]">No open tasks.</li>
+            ) : null}
           </ul>
         </Panel>
 
-        <Panel title="Gate criteria">
+        <Panel title="This week’s checklist">
           {gate ? (
             <ul className="space-y-2">
               {gate.criteria.map((c) => (
                 <li key={c.id} className="flex items-center justify-between text-sm">
                   <span>{c.label}</span>
                   <Badge className={c.satisfied ? "bg-emerald-100" : ""}>
-                    {c.satisfied ? "Met" : "Open"}
+                    {c.satisfied ? "Done" : "Not done"}
                   </Badge>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-[var(--muted)]">No gate on current stage.</p>
+            <p className="text-sm text-[var(--muted)]">No checklist for this week.</p>
           )}
         </Panel>
       </section>
 
       <FounderActionCreate assignees={founders} />
 
-      <Panel title="Recent audit">
+      <Panel title="Recent activity">
         <ul className="space-y-1 text-sm text-[var(--muted)]">
           {recentAudits.map((a) => (
             <li key={a.id}>
-              {a.createdAt.toISOString().slice(0, 16)} · {a.action} · {a.entityType}
+              {a.createdAt.toISOString().slice(0, 16)} · {a.action.replaceAll("_", " ")}
             </li>
           ))}
+          {recentAudits.length === 0 ? (
+            <li>No activity yet.</li>
+          ) : null}
         </ul>
       </Panel>
     </div>
@@ -178,29 +189,17 @@ function Stat({
 }) {
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/80 p-4">
-      <div className="text-xs uppercase tracking-wide text-[var(--muted)]">
-        {label}
-      </div>
-      <div className="mt-1 font-[family-name:var(--font-display)] text-2xl">
-        {value}
-      </div>
+      <div className="text-xs uppercase tracking-wide text-[var(--muted)]">{label}</div>
+      <div className="mt-1 font-[family-name:var(--font-display)] text-2xl">{value}</div>
       {hint ? <div className="mt-1 text-xs text-[var(--muted)]">{hint}</div> : null}
     </div>
   );
 }
 
-function Panel({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/80 p-4">
-      <h2 className="mb-3 font-[family-name:var(--font-display)] text-lg">
-        {title}
-      </h2>
+      <h2 className="mb-3 font-[family-name:var(--font-display)] text-lg">{title}</h2>
       {children}
     </section>
   );

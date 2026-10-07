@@ -1,30 +1,29 @@
-# CoopLaunch Malta — how to use (LIVE)
+# CoopLaunch Malta — how to use
 
-## Open the website
+## Open
 https://coop.mihai.com.mt
 
-## Logins
-Passwords are in the server file `/opt/coop-launch/credentials.bootstrap` (or ask the operator who has them).
+## Sign in
+| Who | Email | Password |
+|-----|-------|----------|
+| Nesli | nesli@cooplaunch.mt | (from operator / credentials file) |
+| Founder | founder@cooplaunch.mt | (from operator / credentials file) |
+| Admin | admin@cooplaunch.mt | (from operator / credentials file) |
 
-| Who | Email | After login |
-|-----|-------|-------------|
-| Nesli | nesli@cooplaunch.mt | Dashboard |
-| Industry Founder | founder@cooplaunch.mt | Needs from you |
-| Admin | admin@cooplaunch.mt | Dashboard |
+## Menu (simple names)
+- **Home** — today’s overview
+- **Founder tasks** — what the founder still needs to do
+- **12-week plan** — weekly tasks and checklists
+- **Contacts** — companies and people (starts empty for real work)
+- **Interviews** — save what people told you
+- **Money & value** — prices and savings
+- **Decisions & docs** — meetings, decisions, file uploads
+- **Register co-op** — registration checklist
 
-## What Nesli can do
-- See today’s plan and tick items Done
-- Send asks to the Founder
-- Programme: mark DoD met, mark tasks ACHIEVED, mark gate criteria met, advance week / record override
-- CRM: add organisation and contact
-- Interviews: log interview + problem tag
-- Governance: upload documents
-- Registration: attach evidence and mark complete
+## Founder buttons
+- **Done** — I finished this
+- **Add comment** — write a note
+- **Ask Nesli to call** — please call me
+- **Do later** — not now
 
-## What Founder can do
-- See “Needs from you”
-- Respond with DONE, COMMENT, CALL NESLI, or DEFER
-- Cannot open coordinator CRM/Programme pages (by design)
-
-## Verified live
-Full click-through retested after these features were deployed (Nesli, Founder, Admin).
+Sample food/hospitality contacts were removed from the live pilot.

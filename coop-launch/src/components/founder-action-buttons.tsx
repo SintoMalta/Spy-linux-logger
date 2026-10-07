@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-const ACTIONS = ["DONE", "COMMENT", "CALL_NESLI", "DEFER"] as const;
+const ACTIONS = [
+  { code: "DONE", label: "Done" },
+  { code: "COMMENT", label: "Add comment" },
+  { code: "CALL_NESLI", label: "Ask Nesli to call" },
+  { code: "DEFER", label: "Do later" },
+] as const;
 
 export function FounderActionButtons({ actionId }: { actionId: string }) {
   const router = useRouter();
@@ -13,7 +18,7 @@ export function FounderActionButtons({ actionId }: { actionId: string }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function send(action: (typeof ACTIONS)[number]) {
+  async function send(action: (typeof ACTIONS)[number]["code"]) {
     setBusy(action);
     setError(null);
     try {
@@ -24,7 +29,7 @@ export function FounderActionButtons({ actionId }: { actionId: string }) {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Failed");
+        setError(data.error ?? "Could not save");
         return;
       }
       setComment("");
@@ -37,20 +42,20 @@ export function FounderActionButtons({ actionId }: { actionId: string }) {
   return (
     <div className="mt-4 space-y-3">
       <Input
-        placeholder="Optional comment"
+        placeholder="Write a short comment (optional)"
         value={comment}
         onChange={(e) => setComment(e.target.value)}
       />
       <div className="flex flex-wrap gap-2">
         {ACTIONS.map((a) => (
           <Button
-            key={a}
+            key={a.code}
             type="button"
-            variant={a === "DONE" ? "default" : "secondary"}
+            variant={a.code === "DONE" ? "default" : "secondary"}
             disabled={busy !== null}
-            onClick={() => send(a)}
+            onClick={() => send(a.code)}
           >
-            {busy === a ? "…" : a.replace("_", " ")}
+            {busy === a.code ? "…" : a.label}
           </Button>
         ))}
       </div>

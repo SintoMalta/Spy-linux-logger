@@ -25,13 +25,17 @@ export function LoginForm() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "Login failed");
+        setError(
+          data.error === "Invalid email or password"
+            ? "Wrong email or password. Please try again."
+            : (data.error ?? "Could not sign in. Please try again."),
+        );
         return;
       }
       router.push(data.redirect ?? "/dashboard");
       router.refresh();
     } catch {
-      setError("Network error");
+      setError("Could not connect. Check your internet and try again.");
     } finally {
       setLoading(false);
     }
@@ -43,7 +47,7 @@ export function LoginForm() {
       className="space-y-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]/80 p-6 shadow-sm"
     >
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">Your email</Label>
         <Input
           id="email"
           type="email"
@@ -54,7 +58,7 @@ export function LoginForm() {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">Your password</Label>
         <Input
           id="password"
           type="password"
@@ -70,7 +74,7 @@ export function LoginForm() {
         </p>
       ) : null}
       <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? "Signing in…" : "Sign in"}
+        {loading ? "Please wait…" : "Sign in"}
       </Button>
     </form>
   );

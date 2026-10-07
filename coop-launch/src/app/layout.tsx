@@ -16,8 +16,7 @@ const sans = Source_Sans_3({
 
 export const metadata: Metadata = {
   title: "CoopLaunch Malta",
-  description:
-    "Evidence-led 12-week cooperative founding programme for Malta",
+  description: "Simple 12-week workspace to launch a cooperative in Malta",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,

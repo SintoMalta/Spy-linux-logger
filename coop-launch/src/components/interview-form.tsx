@@ -65,10 +65,10 @@ export function InterviewForm({
       className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]/80 p-4"
     >
       <h2 className="font-[family-name:var(--font-display)] text-lg">
-        Log interview
+        Save an interview
       </h2>
       <div className="space-y-1">
-        <Label htmlFor="ivOrg">Organisation</Label>
+        <Label htmlFor="ivOrg">Company</Label>
         <select
           id="ivOrg"
           className="flex h-10 w-full rounded-md border border-[var(--border)] bg-transparent px-3 text-sm"
@@ -83,7 +83,7 @@ export function InterviewForm({
         </select>
       </div>
       <div className="space-y-1">
-        <Label htmlFor="problemText">Main problem</Label>
+        <Label htmlFor="problemText">What problem did they describe?</Label>
         <Input
           id="problemText"
           value={problemText}
@@ -92,17 +92,17 @@ export function InterviewForm({
         />
       </div>
       <div className="space-y-1">
-        <Label htmlFor="problemTag">Problem tag</Label>
+        <Label htmlFor="problemTag">Short topic label</Label>
         <Input
           id="problemTag"
           value={problemTag}
           onChange={(e) => setProblemTag(e.target.value)}
-          placeholder="e.g. Supply reliability"
+          placeholder="e.g. Material delays"
           required
         />
       </div>
       <div className="space-y-1">
-        <Label htmlFor="notes">Notes</Label>
+        <Label htmlFor="notes">Extra notes</Label>
         <Input
           id="notes"
           value={notes}
@@ -110,7 +110,7 @@ export function InterviewForm({
         />
       </div>
       <Button type="submit" disabled={busy}>
-        Save interview
+        Save
       </Button>
       {msg ? <p className="text-sm text-[var(--muted)]">{msg}</p> : null}
     </form>

@@ -18,7 +18,10 @@ export default async function HomePage() {
           CoopLaunch Malta
         </p>
         <p className="mt-3 text-[var(--muted)]">
-          Evidence → Decision → Gate for the 12-week cooperative founding programme.
+          A simple workspace to build a cooperative step by step over 12 weeks.
+        </p>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          Enter your email and password to continue.
         </p>
       </div>
       <LoginForm />

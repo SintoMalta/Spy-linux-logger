@@ -26,7 +26,7 @@ export function DodToggle({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "Failed");
+        setError(data.error ?? "Could not update");
         return;
       }
       router.refresh();
@@ -44,7 +44,7 @@ export function DodToggle({
         disabled={loading}
         onClick={toggle}
       >
-        {satisfied ? "Mark DoD open" : "Mark DoD met"}
+        {satisfied ? "Mark as not done" : "Mark as done"}
       </Button>
       {error ? <span className="text-xs text-red-700">{error}</span> : null}
     </span>

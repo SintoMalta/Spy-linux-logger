@@ -38,7 +38,7 @@ export function DocumentUpload() {
 
   return (
     <form onSubmit={onSubmit} className="mt-3 space-y-2">
-      <Label htmlFor="doc">Upload document</Label>
+      <Label htmlFor="doc">Upload a file</Label>
       <input
         id="doc"
         type="file"

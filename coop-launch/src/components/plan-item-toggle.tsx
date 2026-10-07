@@ -30,7 +30,7 @@ export function PlanItemToggle({
 
   return (
     <Button type="button" size="sm" variant="outline" disabled={loading} onClick={toggle}>
-      {done ? "Undo" : "Done"}
+      {done ? "Not done" : "Done"}
     </Button>
   );
 }
