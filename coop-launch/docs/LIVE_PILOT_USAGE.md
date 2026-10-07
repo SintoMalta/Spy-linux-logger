@@ -27,3 +27,6 @@ https://coop.mihai.com.mt
 - **Do later** — not now
 
 Sample food/hospitality contacts were removed from the live pilot.
+
+## Full GPT / Nesli help file
+For Custom GPT knowledge (purpose, CRM meaning, every menu/button, 12-week timeline): see `NESLI_GPT_KNOWLEDGE.md`.
