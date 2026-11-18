@@ -24,16 +24,26 @@ export function getAllowedOrigins(): string[] {
   return Array.from(new Set(expanded));
 }
 
+function parseOrigin(value: string): string | null {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
 export function assertValidOrigin(request: Request): void {
   const origin = request.headers.get("origin");
-  // Same-origin navigations (e.g. form GET) may omit Origin; require Origin or Referer for mutations
+  // Same-origin navigations may omit Origin; require Origin or Referer for mutations.
   const referer = request.headers.get("referer");
-  const allowed = getAllowedOrigins();
-  const candidate = origin ?? (referer ? new URL(referer).origin : null);
+  const candidate = origin ? parseOrigin(origin) : referer ? parseOrigin(referer) : null;
   if (!candidate) {
     throw new OriginError("Missing Origin/Referer on mutating request");
   }
-  if (!allowed.some((a) => candidate === a || candidate.startsWith(a))) {
+  const allowed = getAllowedOrigins();
+  // Compare parsed origins. A prefix check would allow a longer host or port
+  // (localhost:30009, or app.example.com.attacker.com) through the CSRF check.
+  if (!allowed.some((entry) => parseOrigin(entry) === candidate)) {
     throw new OriginError(`Origin not allowed: ${candidate}`);
   }
 }
