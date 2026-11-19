@@ -303,7 +303,13 @@ describe.runIf(hasDb)("journeys", () => {
     const maxWeek = await prisma.stage.aggregate({ _max: { weekNumber: true } });
     const weekNumber = (maxWeek._max.weekNumber ?? 500) + 1;
     const stage = await prisma.stage.create({
-      data: { weekNumber, title: "Override stage", description: "", order: weekNumber },
+      data: {
+        weekNumber,
+        title: "Override stage",
+        description: "",
+        order: weekNumber,
+        status: "IN_PROGRESS",
+      },
     });
     const gate = await prisma.gate.create({
       data: {

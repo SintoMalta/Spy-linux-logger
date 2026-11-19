@@ -13,6 +13,26 @@ export function evaluateGateCriteria(
   return { passed: allSatisfied, blocked: !allSatisfied };
 }
 
+/** Skip and advance both act on the week that is actually in progress. */
+export function assertWeekInProgress(status: string): void {
+  if (status !== "IN_PROGRESS") {
+    throw new DomainError(
+      "GATE_BLOCKED",
+      "Only the week in progress can be finished or skipped",
+    );
+  }
+}
+
+/**
+ * Clearing the current week opens the next one when it has not started.
+ * A week that is already in progress or finished is left alone.
+ */
+export function nextWeekStatusAfterClear(
+  nextStatus: string | null | undefined,
+): "IN_PROGRESS" | null {
+  return nextStatus === "NOT_STARTED" ? "IN_PROGRESS" : null;
+}
+
 export async function getGateEvaluation(gateId: string) {
   const gate = await prisma.gate.findUnique({
     where: { id: gateId },
@@ -65,6 +85,16 @@ export async function overrideGate(
     throw new DomainError("VALIDATION", "Override reason is required");
   }
 
+  const gate = await prisma.gate.findUnique({
+    where: { id: gateId },
+    select: {
+      stageId: true,
+      stage: { select: { status: true, weekNumber: true } },
+    },
+  });
+  if (!gate) throw new DomainError("NOT_FOUND", "Gate not found");
+  assertWeekInProgress(gate.stage.status);
+
   const override = await prisma.gateOverride.create({
     data: {
       gateId,
@@ -81,14 +111,18 @@ export async function overrideGate(
     after: { reason: override.reason, overrideId: override.id },
   });
 
-  const stage = await prisma.gate.findUnique({
-    where: { id: gateId },
-    select: { stageId: true },
+  await prisma.stage.update({
+    where: { id: gate.stageId },
+    data: { status: "COMPLETED" },
   });
-  if (stage) {
+  const next = await prisma.stage.findFirst({
+    where: { weekNumber: gate.stage.weekNumber + 1, deletedAt: null },
+  });
+  const promoted = nextWeekStatusAfterClear(next?.status);
+  if (next && promoted) {
     await prisma.stage.update({
-      where: { id: stage.stageId },
-      data: { status: "COMPLETED" },
+      where: { id: next.id },
+      data: { status: promoted },
     });
   }
 
@@ -148,6 +182,7 @@ export async function advanceStageIfGatePassed(
       "Gate criteria incomplete and no override recorded",
     );
   }
+  assertWeekInProgress(gate.stage.status);
   await prisma.stage.update({
     where: { id: gate.stageId },
     data: { status: "COMPLETED" },
@@ -155,10 +190,11 @@ export async function advanceStageIfGatePassed(
   const next = await prisma.stage.findFirst({
     where: { weekNumber: gate.stage.weekNumber + 1, deletedAt: null },
   });
-  if (next && next.status === "NOT_STARTED") {
+  const promoted = nextWeekStatusAfterClear(next?.status);
+  if (next && promoted) {
     await prisma.stage.update({
       where: { id: next.id },
-      data: { status: "IN_PROGRESS" },
+      data: { status: promoted },
     });
   }
   await writeAudit({

@@ -7,8 +7,12 @@ import {
   requireRole,
 } from "@/server/auth/rbac";
 import { AuthError, type SessionUser } from "@/server/auth/session";
-import { allDodSatisfied } from "@/server/programme/task-service";
-import { evaluateGateCriteria } from "@/server/programme/gate-service";
+import { allDodSatisfied, DomainError } from "@/server/programme/task-service";
+import {
+  assertWeekInProgress,
+  evaluateGateCriteria,
+  nextWeekStatusAfterClear,
+} from "@/server/programme/gate-service";
 import { computeReadinessPercent } from "@/server/registration/readiness";
 import {
   assertAssumptionConfidence,
@@ -101,6 +105,19 @@ describe("gate engine", () => {
     expect(
       evaluateGateCriteria([{ satisfied: false }], true),
     ).toEqual({ passed: true, blocked: false });
+  });
+  it("only finishes the week that is in progress", () => {
+    expect(() => assertWeekInProgress("NOT_STARTED")).toThrow(DomainError);
+    expect(() => assertWeekInProgress("COMPLETED")).toThrow(
+      /week in progress/,
+    );
+    expect(() => assertWeekInProgress("IN_PROGRESS")).not.toThrow();
+  });
+  it("opens the following week after the current one is cleared", () => {
+    expect(nextWeekStatusAfterClear("NOT_STARTED")).toBe("IN_PROGRESS");
+    expect(nextWeekStatusAfterClear("IN_PROGRESS")).toBeNull();
+    expect(nextWeekStatusAfterClear("COMPLETED")).toBeNull();
+    expect(nextWeekStatusAfterClear(null)).toBeNull();
   });
 });
 
