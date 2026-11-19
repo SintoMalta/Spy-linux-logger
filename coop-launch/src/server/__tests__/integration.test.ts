@@ -130,6 +130,7 @@ describe.runIf(hasDb)("gate + DoD integration", () => {
         title: "Gate stage",
         description: "test",
         order: weekNumber,
+        status: "IN_PROGRESS",
       },
     });
     const gate = await prisma.gate.create({
