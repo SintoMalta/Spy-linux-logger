@@ -95,7 +95,7 @@ export async function overrideGate(
   return override;
 }
 
-/** Record go / conditional / no-go for the final review week (API path still named week9). */
+/** Persist the week 9 go / conditional / no-go flag the gates and reports read. */
 export async function setWeek9Decision(
   user: SessionUser,
   decision: "GO" | "CONDITIONAL_GO" | "NO_GO",
@@ -103,11 +103,16 @@ export async function setWeek9Decision(
   if (!canManageProgramme(user)) {
     throw new AuthError("FORBIDDEN", "Insufficient permissions");
   }
+  const flag = await prisma.programmeFlag.upsert({
+    where: { key: "WEEK9_DECISION" },
+    update: { value: decision },
+    create: { key: "WEEK9_DECISION", value: decision },
+  });
   await writeAudit({
     actorId: user.id,
     action: "GO_NO_GO_DECISION",
-    entityType: "Programme",
-    entityId: "week-final",
+    entityType: "ProgrammeFlag",
+    entityId: flag.id,
     after: { decision },
   });
   return { decision, recorded: true as const };
@@ -124,11 +129,16 @@ export async function markRegistrationSubmitted(user: SessionUser, verified: boo
   if (!verified) {
     throw new DomainError("VALIDATION", "Submission must be verified");
   }
+  const flag = await prisma.programmeFlag.upsert({
+    where: { key: "REGISTRATION_SUBMITTED" },
+    update: { value: "true" },
+    create: { key: "REGISTRATION_SUBMITTED", value: "true" },
+  });
   await writeAudit({
     actorId: user.id,
     action: "REGISTRATION_SUBMITTED",
-    entityType: "Programme",
-    entityId: "registration",
+    entityType: "ProgrammeFlag",
+    entityId: flag.id,
     after: { verified: true },
   });
   return { verified: true as const, recorded: true as const };
