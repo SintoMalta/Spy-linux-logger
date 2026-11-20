@@ -693,6 +693,13 @@ model WeeklyReport {
   createdAt   DateTime  @default(now())
 }
 
+model ProgrammeFlag {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
 model AuditLog {
   id         String   @id @default(cuid())
   actorId    String?
