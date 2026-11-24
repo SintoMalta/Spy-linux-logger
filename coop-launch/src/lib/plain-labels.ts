@@ -22,6 +22,10 @@ const ORG_STATUS: Record<string, string> = {
   NURTURE: "Keep in touch",
   DO_NOT_PURSUE: "Do not contact",
   ARCHIVED: "Archived",
+  NEW: "New",
+  INTERVIEWED: "Interviewed",
+  POTENTIAL_FOUNDER: "Possible founder",
+  FOUNDING_WORKING_GROUP: "Working group",
 };
 
 const ROLE: Record<string, string> = {

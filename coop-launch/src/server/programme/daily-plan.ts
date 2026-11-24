@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import type { SessionUser } from "@/server/auth/session";
 import { AuthError } from "@/server/auth/session";
 import { canManageProgramme } from "@/server/auth/rbac";
+import { dueFollowUpWhere } from "@/server/crm/follow-up";
 
 const BLOCKS = [
   { title: "Settle & priorities", minutes: 20 },
@@ -46,7 +47,7 @@ export async function proposeNextDayPriorities(user: SessionUser) {
   if (!canManageProgramme(user)) {
     throw new AuthError("FORBIDDEN", "Insufficient permissions");
   }
-  const [stage, waiting, recentPeople, openActions] = await Promise.all([
+  const [stage, waiting, followUps, openActions] = await Promise.all([
     prisma.stage.findFirst({
       where: { status: "IN_PROGRESS", deletedAt: null },
       include: { gate: { include: { criteria: true } }, tasks: { where: { deletedAt: null } } },
@@ -56,8 +57,8 @@ export async function proposeNextDayPriorities(user: SessionUser) {
       take: 5,
     }),
     prisma.person.findMany({
-      where: { deletedAt: null },
-      orderBy: { updatedAt: "desc" },
+      where: dueFollowUpWhere(),
+      orderBy: { followUpDate: "asc" },
       take: 5,
     }),
     prisma.founderActionRequest.findMany({
@@ -69,7 +70,7 @@ export async function proposeNextDayPriorities(user: SessionUser) {
   const proposals = [
     stage ? `Continue Week ${stage.weekNumber}: ${stage.title}` : "Review programme status",
     ...waiting.map((t) => `Follow waiting: ${t.title}`),
-    ...recentPeople.map((p) => `Contacts follow-up: ${p.name}`),
+    ...followUps.map((p) => `Contacts follow-up: ${p.name}`),
     ...openActions.map((a) => `Founder ask open: ${a.title}`),
     ...(stage?.gate?.criteria.filter((c) => !c.satisfied).map((c) => `Week checklist open: ${c.label}`) ??
       []),

@@ -4,6 +4,7 @@ import { withMutation, withSessionJson } from "@/server/http";
 import { canManageProgramme, canWriteCrm } from "@/server/auth/rbac";
 import { AuthError } from "@/server/auth/session";
 import { writeAudit } from "@/server/audit";
+import { crmFollowUpWrite } from "@/server/crm/follow-up";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -36,14 +37,16 @@ export async function POST(request: Request) {
     const org = await prisma.organisation.create({
       data: {
         name: body.name,
-        trade: body.trade ?? "",
         status: (body.status as never) ?? "NEW",
         notes: body.notes ?? "",
-        nextAction: body.nextAction ?? "",
-        followUpDate: body.followUpDate ? new Date(body.followUpDate) : null,
-        potentialFounder: body.potentialFounder ?? false,
-        locality: body.locality ?? "",
         sector: "construction",
+        ...crmFollowUpWrite({
+          trade: body.trade ?? "",
+          nextAction: body.nextAction ?? "",
+          followUpDate: body.followUpDate ?? null,
+          potentialFounder: body.potentialFounder ?? false,
+          locality: body.locality ?? "",
+        }),
       },
     });
     await writeAudit({ actorId: user.id, action: "ORG_CREATE", entityType: "Organisation", entityId: org.id });

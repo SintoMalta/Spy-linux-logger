@@ -61,6 +61,11 @@ export default async function FounderDashboard() {
                 {a.comment ? (
                   <p className="mt-2 text-sm">Last comment: {a.comment}</p>
                 ) : null}
+                {a.followUpDate ? (
+                  <p className="mt-2 text-sm">
+                    Do later on: {a.followUpDate.toISOString().slice(0, 10)}
+                  </p>
+                ) : null}
               </div>
               <Badge>{plainFounderActionStatus(a.status)}</Badge>
             </div>

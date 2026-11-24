@@ -7,6 +7,7 @@ import { DomainError } from "@/server/programme/task-service";
 const schema = z.object({
   action: z.enum(["DONE", "COMMENT", "CALL_NESLI", "DEFER"]),
   comment: z.string().optional(),
+  followUpDate: z.string().optional().nullable(),
 });
 
 export async function POST(
