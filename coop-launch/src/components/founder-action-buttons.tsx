@@ -15,6 +15,7 @@ const ACTIONS = [
 export function FounderActionButtons({ actionId }: { actionId: string }) {
   const router = useRouter();
   const [comment, setComment] = useState("");
+  const [followUpDate, setFollowUpDate] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +26,11 @@ export function FounderActionButtons({ actionId }: { actionId: string }) {
       const res = await fetch(`/api/founder-actions/${actionId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, comment: comment || undefined }),
+        body: JSON.stringify({
+          action,
+          comment: comment || undefined,
+          followUpDate: action === "DEFER" && followUpDate ? followUpDate : undefined,
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -46,6 +51,16 @@ export function FounderActionButtons({ actionId }: { actionId: string }) {
         value={comment}
         onChange={(e) => setComment(e.target.value)}
       />
+      <label className="block text-sm text-[var(--muted)]">
+        Do later on
+        <Input
+          type="date"
+          aria-label="Do later on"
+          value={followUpDate}
+          onChange={(e) => setFollowUpDate(e.target.value)}
+          className="mt-1"
+        />
+      </label>
       <div className="flex flex-wrap gap-2">
         {ACTIONS.map((a) => (
           <Button

@@ -4,6 +4,7 @@ import { withMutation, withSessionJson } from "@/server/http";
 import { canManageProgramme, canWriteCrm } from "@/server/auth/rbac";
 import { AuthError } from "@/server/auth/session";
 import { writeAudit } from "@/server/audit";
+import { crmFollowUpWrite } from "@/server/crm/follow-up";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -64,12 +65,14 @@ export async function POST(request: Request) {
         email: body.email ?? null,
         phone: body.phone ?? null,
         roleTitle: body.roleTitle,
-        trade: body.trade ?? "",
         status: (body.status as never) ?? "NEW",
         notes: body.notes ?? "",
-        nextAction: body.nextAction ?? "",
-        followUpDate: body.followUpDate ? new Date(body.followUpDate) : null,
-        potentialFounder: body.potentialFounder ?? false,
+        ...crmFollowUpWrite({
+          trade: body.trade ?? "",
+          nextAction: body.nextAction ?? "",
+          followUpDate: body.followUpDate ?? null,
+          potentialFounder: body.potentialFounder ?? false,
+        }),
       },
     });
     await writeAudit({ actorId: user.id, action: "PERSON_CREATE", entityType: "Person", entityId: person.id });

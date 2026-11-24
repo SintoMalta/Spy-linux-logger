@@ -4,11 +4,12 @@ import { canAccessFounderDashboard } from "@/server/auth/rbac";
 import { writeAudit } from "@/server/audit";
 import type { FounderActionType } from "@prisma/client";
 import { DomainError } from "@/server/programme/task-service";
+import { founderActionResponsePatch } from "@/server/crm/follow-up";
 
 export async function respondToFounderAction(
   user: SessionUser,
   actionId: string,
-  response: { action: FounderActionType; comment?: string },
+  response: { action: FounderActionType; comment?: string; followUpDate?: string | null },
 ) {
   if (!canAccessFounderDashboard(user)) {
     throw new AuthError("FORBIDDEN", "Cannot respond to founder actions");
@@ -26,20 +27,11 @@ export async function respondToFounderAction(
     throw new AuthError("FORBIDDEN", "Not your action request");
   }
 
-  let status = existing.status;
-  if (response.action === "DONE") status = "DONE";
-  if (response.action === "DEFER") status = "DEFERRED";
-  if (response.action === "COMMENT" || response.action === "CALL_NESLI") {
-    status = "OPEN";
-  }
+  const patch = founderActionResponsePatch(existing, response);
 
   const updated = await prisma.founderActionRequest.update({
     where: { id: actionId },
-    data: {
-      status,
-      lastAction: response.action,
-      comment: response.comment ?? existing.comment,
-    },
+    data: patch,
   });
 
   await writeAudit({
@@ -47,7 +39,11 @@ export async function respondToFounderAction(
     action: "FOUNDER_ACTION_RESPONSE",
     entityType: "FounderActionRequest",
     entityId: actionId,
-    after: { lastAction: response.action, status },
+    after: {
+      lastAction: patch.lastAction,
+      status: patch.status,
+      followUpDate: patch.followUpDate,
+    },
   });
 
   return updated;

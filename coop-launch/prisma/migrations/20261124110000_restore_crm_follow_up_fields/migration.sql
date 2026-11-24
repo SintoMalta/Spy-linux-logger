@@ -1,0 +1,20 @@
+-- Restore follow-up columns the contact and founder-ask routes still write.
+-- The init migration created these tables without them.
+
+ALTER TYPE "OrgPersonStatus" ADD VALUE IF NOT EXISTS 'NEW';
+ALTER TYPE "OrgPersonStatus" ADD VALUE IF NOT EXISTS 'INTERVIEWED';
+ALTER TYPE "OrgPersonStatus" ADD VALUE IF NOT EXISTS 'POTENTIAL_FOUNDER';
+ALTER TYPE "OrgPersonStatus" ADD VALUE IF NOT EXISTS 'FOUNDING_WORKING_GROUP';
+
+ALTER TABLE "Organisation" ADD COLUMN IF NOT EXISTS "trade" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "Organisation" ADD COLUMN IF NOT EXISTS "nextAction" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "Organisation" ADD COLUMN IF NOT EXISTS "followUpDate" TIMESTAMP(3);
+ALTER TABLE "Organisation" ADD COLUMN IF NOT EXISTS "potentialFounder" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Organisation" ADD COLUMN IF NOT EXISTS "locality" TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE "Person" ADD COLUMN IF NOT EXISTS "trade" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "Person" ADD COLUMN IF NOT EXISTS "nextAction" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "Person" ADD COLUMN IF NOT EXISTS "followUpDate" TIMESTAMP(3);
+ALTER TABLE "Person" ADD COLUMN IF NOT EXISTS "potentialFounder" BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE "FounderActionRequest" ADD COLUMN IF NOT EXISTS "followUpDate" TIMESTAMP(3);

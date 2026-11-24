@@ -5,6 +5,7 @@ import { canWriteCrm } from "@/server/auth/rbac";
 import { AuthError } from "@/server/auth/session";
 import { writeAudit } from "@/server/audit";
 import { DomainError } from "@/server/programme/task-service";
+import { crmFollowUpWrite } from "@/server/crm/follow-up";
 
 const schema = z.object({
   name: z.string().min(1).optional(),
@@ -29,13 +30,15 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
       where: { id },
       data: {
         name: body.name,
-        trade: body.trade,
         status: body.status as never,
         notes: body.notes,
-        nextAction: body.nextAction,
-        followUpDate: body.followUpDate === undefined ? undefined : body.followUpDate ? new Date(body.followUpDate) : null,
-        potentialFounder: body.potentialFounder,
-        locality: body.locality,
+        ...crmFollowUpWrite({
+          trade: body.trade,
+          nextAction: body.nextAction,
+          followUpDate: body.followUpDate,
+          potentialFounder: body.potentialFounder,
+          locality: body.locality,
+        }),
         deletedAt: body.softDelete ? new Date() : undefined,
       },
     });

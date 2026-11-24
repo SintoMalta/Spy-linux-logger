@@ -40,6 +40,10 @@ enum OrgPersonStatus {
   NURTURE
   DO_NOT_PURSUE
   ARCHIVED
+  NEW
+  INTERVIEWED
+  POTENTIAL_FOUNDER
+  FOUNDING_WORKING_GROUP
 }
 
 enum AssumptionConfidence {
@@ -362,14 +366,19 @@ model GateOverride {
 }
 
 model Organisation {
-  id        String          @id @default(cuid())
-  name      String
-  sector    String          @default("")
-  status    OrgPersonStatus @default(ACTIVE)
-  notes     String          @default("")
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  deletedAt DateTime?
+  id               String          @id @default(cuid())
+  name             String
+  trade            String          @default("")
+  sector           String          @default("")
+  status           OrgPersonStatus @default(ACTIVE)
+  notes            String          @default("")
+  nextAction       String          @default("")
+  followUpDate     DateTime?
+  potentialFounder Boolean         @default(false)
+  locality         String          @default("")
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  deletedAt        DateTime?
 
   people          Person[]
   communications  Communication[]
@@ -380,15 +389,19 @@ model Person {
   id             String          @id @default(cuid())
   organisationId String?
   organisation   Organisation?   @relation(fields: [organisationId], references: [id])
-  name           String
-  email          String?
-  phone          String?
-  roleTitle      String?
-  status         OrgPersonStatus @default(ACTIVE)
-  notes          String          @default("")
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  deletedAt      DateTime?
+  name             String
+  email            String?
+  phone            String?
+  roleTitle        String?
+  trade            String          @default("")
+  status           OrgPersonStatus @default(ACTIVE)
+  notes            String          @default("")
+  nextAction       String          @default("")
+  followUpDate     DateTime?
+  potentialFounder Boolean         @default(false)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  deletedAt        DateTime?
 
   communications   Communication[]
   interviews       Interview[]
@@ -668,6 +681,7 @@ model FounderActionRequest {
   status       FounderActionStatus @default(OPEN)
   lastAction   FounderActionType?
   comment      String?
+  followUpDate DateTime?
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
   deletedAt    DateTime?
