@@ -684,13 +684,16 @@ model Notification {
 }
 
 model WeeklyReport {
-  id          String    @id @default(cuid())
-  weekNumber  Int
-  body        String
+  id           String    @id @default(cuid())
+  weekNumber   Int
+  body         String
   authoredById String
-  authoredBy  User      @relation(fields: [authoredById], references: [id])
-  publishedAt DateTime?
-  createdAt   DateTime  @default(now())
+  authoredBy   User      @relation(fields: [authoredById], references: [id])
+  /** DRAFT until the coordinator finalises. Save and finalise both write this. */
+  status       String    @default("DRAFT")
+  publishedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
 
 model AuditLog {
