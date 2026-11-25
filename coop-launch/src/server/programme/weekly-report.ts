@@ -4,6 +4,7 @@ import { AuthError } from "@/server/auth/session";
 import { canManageProgramme } from "@/server/auth/rbac";
 import { getRegistrationReadiness } from "@/server/registration/readiness";
 import { collectMetrics } from "@/server/programme/metrics";
+import { weeklyReportDraftWhere, weeklyReportPersist } from "@/server/programme/weekly-report-status";
 
 export async function buildWeeklyReportDraft(user: SessionUser, weekNumber: number) {
   if (!canManageProgramme(user)) {
@@ -54,25 +55,20 @@ export async function upsertWeeklyReport(
     throw new AuthError("FORBIDDEN", "Insufficient permissions");
   }
   const existing = await prisma.weeklyReport.findFirst({
-    where: { weekNumber, authoredById: user.id, status: "DRAFT" },
+    where: weeklyReportDraftWhere(user.id, weekNumber),
   });
+  const data = weeklyReportPersist(body, finalise);
   if (existing) {
     return prisma.weeklyReport.update({
       where: { id: existing.id },
-      data: {
-        body,
-        status: finalise ? "FINAL" : "DRAFT",
-        publishedAt: finalise ? new Date() : null,
-      },
+      data,
     });
   }
   return prisma.weeklyReport.create({
     data: {
       weekNumber,
-      body,
       authoredById: user.id,
-      status: finalise ? "FINAL" : "DRAFT",
-      publishedAt: finalise ? new Date() : null,
+      ...data,
     },
   });
 }
