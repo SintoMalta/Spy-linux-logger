@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/server/auth/session";
-import { canManageProgramme } from "@/server/auth/rbac";
+import { canManageProgramme, landingPath } from "@/server/auth/rbac";
 import { prisma } from "@/lib/prisma";
 import { filterOffersForRole } from "@/server/economic/finance";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 export default async function EconomicPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/");
-  if (!canManageProgramme(user)) redirect("/founder");
+  if (!canManageProgramme(user)) redirect(landingPath(user));
 
   const [suppliers, assumptions, statements] = await Promise.all([
     prisma.supplier.findMany({

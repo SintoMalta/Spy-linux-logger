@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/server/auth/session";
-import { canManageProgramme } from "@/server/auth/rbac";
+import { canManageProgramme, landingPath } from "@/server/auth/rbac";
 import { prisma } from "@/lib/prisma";
 import { getRegistrationReadiness } from "@/server/registration/readiness";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,7 @@ const PRIORITY: Record<string, string> = {
 export default async function RegistrationPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/");
-  if (!canManageProgramme(user)) redirect("/founder");
+  if (!canManageProgramme(user)) redirect(landingPath(user));
 
   const [items, readiness, documents] = await Promise.all([
     prisma.registrationRequirement.findMany({ orderBy: { code: "asc" } }),

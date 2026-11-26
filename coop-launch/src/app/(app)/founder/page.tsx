@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/server/auth/session";
-import { canAccessFounderDashboard } from "@/server/auth/rbac";
+import { canAccessFounderDashboard, landingPath } from "@/server/auth/rbac";
 import { prisma } from "@/lib/prisma";
 import { FounderActionButtons } from "@/components/founder-action-buttons";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,7 @@ import { plainFounderActionStatus, plainStageStatus } from "@/lib/plain-labels";
 export default async function FounderDashboard() {
   const user = await getCurrentUser();
   if (!user) redirect("/");
-  if (!canAccessFounderDashboard(user)) redirect("/dashboard");
+  if (!canAccessFounderDashboard(user)) redirect(landingPath(user));
 
   const assigneeFilter =
     user.role === "INDUSTRY_FOUNDER" ? { assigneeId: user.id } : {};

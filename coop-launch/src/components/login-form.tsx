@@ -32,7 +32,7 @@ export function LoginForm() {
         );
         return;
       }
-      router.push(data.redirect ?? "/dashboard");
+      router.push(data.redirect ?? "/account");
       router.refresh();
     } catch {
       setError("Could not connect. Check your internet and try again.");

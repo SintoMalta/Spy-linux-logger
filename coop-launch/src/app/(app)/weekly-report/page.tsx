@@ -1,13 +1,13 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/server/auth/session";
-import { canManageProgramme } from "@/server/auth/rbac";
+import { canManageProgramme, landingPath } from "@/server/auth/rbac";
 import { prisma } from "@/lib/prisma";
 import { WeeklyReportEditor } from "@/components/weekly-report-editor";
 
 export default async function WeeklyReportPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/");
-  if (!canManageProgramme(user)) redirect("/founder");
+  if (!canManageProgramme(user)) redirect(landingPath(user));
 
   const current =
     (await prisma.stage.findFirst({ where: { status: "IN_PROGRESS" } })) ??

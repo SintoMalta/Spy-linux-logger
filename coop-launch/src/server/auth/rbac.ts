@@ -47,6 +47,17 @@ export function canAccessFounderDashboard(user: SessionUser): boolean {
   return hasRole(user, ["INDUSTRY_FOUNDER", "COORDINATOR", "ADMIN"]);
 }
 
+/**
+ * Page a signed-in user can stay on.
+ * Adviser, founding member, and read-only must not be sent to /founder or
+ * /dashboard: those two pages redirect to each other.
+ */
+export function landingPath(user: SessionUser): "/daily-plan" | "/founder" | "/account" {
+  if (canManageProgramme(user)) return "/daily-plan";
+  if (canAccessFounderDashboard(user)) return "/founder";
+  return "/account";
+}
+
 export function canWriteCrm(user: SessionUser): boolean {
   return hasRole(user, ["COORDINATOR", "ADMIN"]);
 }

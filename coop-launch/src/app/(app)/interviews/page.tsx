@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/server/auth/session";
-import { canManageProgramme } from "@/server/auth/rbac";
+import { canManageProgramme, landingPath } from "@/server/auth/rbac";
 import { prisma } from "@/lib/prisma";
 import { getProblemMatrix } from "@/server/market/problem-matrix";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,7 @@ import { InterviewForm } from "@/components/interview-form";
 export default async function InterviewsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/");
-  if (!canManageProgramme(user)) redirect("/founder");
+  if (!canManageProgramme(user)) redirect(landingPath(user));
 
   const [interviews, matrix, assessments, organisations] = await Promise.all([
     prisma.interview.findMany({

@@ -1,15 +1,11 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/server/auth/session";
-import { canManageProgramme, canAccessFounderDashboard } from "@/server/auth/rbac";
+import { landingPath } from "@/server/auth/rbac";
 import { LoginForm } from "@/components/login-form";
 
 export default async function HomePage() {
   const user = await getCurrentUser();
-  if (user) {
-    if (canManageProgramme(user)) redirect("/daily-plan");
-    if (canAccessFounderDashboard(user)) redirect("/founder");
-    redirect("/daily-plan");
-  }
+  if (user) redirect(landingPath(user));
 
   return (
     <main className="mx-auto flex min-h-[100dvh] max-w-lg flex-col justify-center px-4 py-10">

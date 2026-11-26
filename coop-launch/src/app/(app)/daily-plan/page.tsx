@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/server/auth/session";
-import { canManageProgramme } from "@/server/auth/rbac";
+import { canManageProgramme, landingPath } from "@/server/auth/rbac";
 import { prisma } from "@/lib/prisma";
 import { TaskCoachCard } from "@/components/task-coach-card";
 import { WeekGateCoach } from "@/components/week-gate-coach";
@@ -11,7 +11,7 @@ import { plainWeek } from "@/lib/task-guides";
 export default async function DailyPlanPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/");
-  if (!canManageProgramme(user)) redirect("/founder");
+  if (!canManageProgramme(user)) redirect(landingPath(user));
 
   const stages = await prisma.stage.findMany({
     where: { deletedAt: null },
