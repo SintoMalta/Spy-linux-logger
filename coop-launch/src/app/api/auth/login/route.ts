@@ -5,7 +5,7 @@ import {
   SESSION_COOKIE,
   loginWithPassword,
 } from "@/server/auth/session";
-import { canManageProgramme } from "@/server/auth/rbac";
+import { landingPath } from "@/server/auth/rbac";
 
 const bodySchema = z.object({
   email: z.string().email(),
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       userAgent,
     });
 
-    const redirect = canManageProgramme(user) ? "/daily-plan" : "/founder";
+    const redirect = landingPath(user);
     const res = NextResponse.json({ ok: true, redirect, role: user.role });
     res.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,

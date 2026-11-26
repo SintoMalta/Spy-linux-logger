@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/server/auth/session";
-import { canManageProgramme } from "@/server/auth/rbac";
+import { canManageProgramme, landingPath } from "@/server/auth/rbac";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import { TEMPLATE_BODIES } from "@/server/governance/decisions";
@@ -10,7 +10,7 @@ import { AdviceCreateForm } from "@/components/advice-create-form";
 export default async function GovernancePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/");
-  if (!canManageProgramme(user)) redirect("/founder");
+  if (!canManageProgramme(user)) redirect(landingPath(user));
 
   const [advice, meetings, decisions, risks, templates, documents, advisers] =
     await Promise.all([
