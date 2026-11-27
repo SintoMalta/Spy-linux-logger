@@ -8,6 +8,7 @@ import {
 
 const schema = z.object({
   overrideReason: z.string().optional(),
+  resultNotes: z.string().optional(),
 });
 
 export async function POST(
@@ -20,6 +21,7 @@ export async function POST(
     const body = schema.parse(await request.json().catch(() => ({})));
     const task = await markTaskAchieved(user, id, {
       overrideReason: body.overrideReason,
+      resultNotes: body.resultNotes,
     });
     return NextResponse.json({ ok: true, task });
   } catch (err) {

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { AuthError, type SessionUser } from "@/server/auth/session";
 import { canManageProgramme } from "@/server/auth/rbac";
 import { writeAudit } from "@/server/audit";
+import { achievedTaskData } from "@/lib/task-finish";
 
 export class DomainError extends Error {
   constructor(
@@ -23,7 +24,7 @@ export function allDodSatisfied(
 export async function markTaskAchieved(
   user: SessionUser,
   taskId: string,
-  options?: { overrideReason?: string },
+  options?: { overrideReason?: string; resultNotes?: string },
 ) {
   if (!canManageProgramme(user)) {
     throw new AuthError("FORBIDDEN", "Only coordinators can achieve tasks");
@@ -63,7 +64,7 @@ export async function markTaskAchieved(
 
   const updated = await prisma.task.update({
     where: { id: taskId },
-    data: { status: "ACHIEVED", achievedAt: new Date() },
+    data: achievedTaskData(new Date(), options?.resultNotes),
   });
 
   await writeAudit({
@@ -75,6 +76,7 @@ export async function markTaskAchieved(
     after: {
       status: updated.status,
       overrideReason: options?.overrideReason ?? null,
+      resultNotesLength: options?.resultNotes?.length ?? null,
     },
   });
 
