@@ -9,6 +9,7 @@ import { ActionFeedback } from "@/components/action-feedback";
 import { apiMutate } from "@/components/simple-form";
 import { guideForTask } from "@/lib/task-guides";
 import { plainTaskStatus } from "@/lib/plain-labels";
+import { finishTaskRequest } from "@/lib/task-finish";
 
 type Dod = {
   id: string;
@@ -91,9 +92,7 @@ export function TaskCoachCard({
       const res = await fetch(`/api/tasks/${task.id}/achieve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          overrideReason: dodComplete ? undefined : reason,
-        }),
+        body: JSON.stringify(finishTaskRequest(notes, dodComplete, reason)),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
